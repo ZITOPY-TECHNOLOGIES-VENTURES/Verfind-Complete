@@ -1,0 +1,9 @@
+{
+  "name": "Verifind Real Estate",
+  "description": "Abuja-first real estate marketplace with fraud protection and physical verification.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation"
+  ]
+}
