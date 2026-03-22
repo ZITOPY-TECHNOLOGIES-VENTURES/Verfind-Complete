@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const LiquidBackground: React.FC = () => {
-  // Stable configuration for 6 large organic liquid blobs
+  const location = useLocation();
+  const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
   const blobs = useMemo(() => {
     return Array.from({ length: 6 }).map((_, i) => {
       const size = Math.random() * 50 + 40; // Size between 40vw and 90vw
@@ -31,11 +33,11 @@ const LiquidBackground: React.FC = () => {
     });
   }, []);
 
-  return (
+  return isAuthPage ? (
     <div className="liquid-bg-container">
       {blobs}
     </div>
-  );
+  ) : null;
 };
 
 export default LiquidBackground;

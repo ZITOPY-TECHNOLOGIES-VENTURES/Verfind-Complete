@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AppMode, User } from '../types';
-import { Search, MessageSquare, Wallet, User as UserIcon, Settings, Sun, Moon, LogOut, ChevronDown } from 'lucide-react';
+import { Search, MessageSquare, Wallet, User as UserIcon, Settings, Users, LogOut, ChevronDown } from 'lucide-react';
 import { useTheme, AccentColor, FontSize } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,17 +8,18 @@ interface BottomNavProps {
   currentMode: AppMode | 'profile';
   onModeChange: (mode: any) => void;
   user: User | null;
+  onFindAgentClick?: (e: React.MouseEvent) => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentMode, onModeChange, user }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ currentMode, onModeChange, user, onFindAgentClick }) => {
   const { theme, resolvedTheme, toggleTheme, setTheme, accent, setAccent, fontSize, setFontSize } = useTheme();
   const { logout } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
 
   const navItems = [
     { id: AppMode.BROWSE,           icon: <Search size={20} />,       label: 'Explore' },
+    { id: AppMode.FIND_AGENT,       icon: <Users size={20} />,        label: 'Agents' },
     { id: AppMode.CHAT_ASSISTANT,   icon: <MessageSquare size={20} />, label: 'AI Chat' },
-    { id: AppMode.WALLET,           icon: <Wallet size={20} />,       label: 'Escrow'  },
     { id: 'profile',                icon: <UserIcon size={20} />,     label: 'Profile' },
   ];
 
@@ -118,7 +119,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentMode, onModeChange,
           const active = currentMode === item.id;
           return (
             <button key={item.id}
-              onClick={() => { onModeChange(item.id); setShowSettings(false); }}
+              onClick={(e) => { 
+                if (item.id === AppMode.FIND_AGENT && onFindAgentClick) {
+                  onFindAgentClick(e);
+                } else {
+                  onModeChange(item.id); 
+                }
+                setShowSettings(false); 
+              }}
               className="flex-1 flex flex-col items-center justify-center gap-1 h-full rounded-3xl transition-all"
               style={{ color: active ? 'var(--color-primary)' : 'var(--text-muted)' }}>
               <div className="p-2 rounded-2xl transition-all"

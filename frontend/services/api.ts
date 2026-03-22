@@ -1,4 +1,3 @@
-
 import { Property, ApiResponse, VerificationStage, Task, PropertyFilters } from '../types.ts';
 import { db } from './db.ts';
 
@@ -30,7 +29,6 @@ const STAGES: VerificationStage[] = [
 
 function rand(min: number, max: number) { return Math.random() * (max - min) + min; }
 
-// ── Real Unsplash property images pool ───────────────────────────────────────
 const PROPERTY_IMAGES: Record<string, string[]> = {
   'Maitama': [
     'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
@@ -82,7 +80,6 @@ export const getUserId = () => {
   return 'guest';
 };
 
-// ── In-memory favorites for mock engine ──────────────────────────────────────
 const mockFavorites: Map<string, Set<string>> = new Map();
 
 class BridgeApi {
@@ -118,16 +115,19 @@ class BridgeApi {
           headers: this.getAuthHeaders(),
           body: body ? JSON.stringify(body) : undefined,
         });
-        const data = await response.json();
-        return { data, success: response.ok, status: response.status };
+
+        if (response.ok) {
+          const data = await response.json();
+          return { data, success: true, status: response.status };
+        }
+        console.warn(`Backend error ${response.status}, falling back to Mock Engine`);
       } catch (error) {
-        console.warn('Live bridge failed, falling back to Mock Engine');
+        console.warn('Live bridge: network failed, falling back to Mock Engine');
       }
     }
     return this.mockEngine<T>(method, endpoint, body);
   }
 
-  // ── MOCK ENGINE ─────────────────────────────────────────────────────────────
   private async mockEngine<T>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     endpoint: string,
@@ -137,10 +137,8 @@ class BridgeApi {
     const headers = this.getAuthHeaders();
     const userId   = headers['x-user-id']   || 'guest';
     const userName = headers['x-user-name'] || 'Agent Verifind';
-    const userRole = headers['x-user-role'] || 'tenant';
 
     try {
-      // ── AUTH ──────────────────────────────────────────────────────────────
       if (endpoint === '/auth/login' && method === 'POST') {
         const user = await db.getFromIndex('users', 'by-email', body.email);
         if (user && user.password === body.password) {
@@ -148,6 +146,59 @@ class BridgeApi {
           return { success: true, status: 200, data: { token: 'mock-jwt', user: safeUser } as any };
         }
         return { success: false, status: 401, message: 'Invalid credentials' };
+      }
+
+      if (endpoint === '/auth/send-otp' && method === 'POST') {
+        const existing = await db.getFromIndex('users', 'by-email', body.email);
+        if (existing) return { success: false, status: 409, message: 'Email already registered' };
+        
+        // Mock sending an OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Store the pending registration temporarily inside mockFavorites (or similar) just to pass state to verify-email
+        const pendingReg = {
+          username: body.username,
+          email: body.email,
+          password: body.password,
+          role: body.role || 'tenant',
+          otp,
+          expires: Date.now() + 10 * 60000,
+        };
+        // Use localStorage to mock Temporary Redis/DB store for pending regs
+        localStorage.setItem(`mock_reg_${body.email}`, JSON.stringify(pendingReg));
+
+        return { 
+          success: true, 
+          status: 200, 
+          data: { 
+            message: 'Code sent', 
+            devOtp: otp 
+          } as any 
+        };
+      }
+
+      if (endpoint === '/auth/verify-email' && method === 'POST') {
+        const stored = localStorage.getItem(`mock_reg_${body.email}`);
+        if (!stored) return { success: false, status: 400, message: 'No pending registration found' };
+        
+        const pending = JSON.parse(stored);
+        if (Date.now() > pending.expires) return { success: false, status: 400, message: 'Code expired' };
+        if (pending.otp !== String(body.otp)) return { success: false, status: 400, message: 'Incorrect code' };
+        
+        const newUser = {
+          _id: crypto.randomUUID(),
+          username: pending.username,
+          email: pending.email,
+          password: pending.password,
+          role: pending.role,
+          isKycVerified: false,
+          createdAt: new Date().toISOString(),
+        };
+        await db.add('users', newUser as any);
+        localStorage.removeItem(`mock_reg_${body.email}`);
+        
+        const { password, ...safeUser } = newUser;
+        return { success: true, status: 201, data: { token: 'mock-jwt', user: safeUser } as any };
       }
 
       if (endpoint === '/auth/register' && method === 'POST') {
@@ -167,9 +218,7 @@ class BridgeApi {
         return { success: true, status: 201, data: { token: 'mock-jwt', user: safeUser } as any };
       }
 
-      // ── PROPERTIES (with search + filter) ─────────────────────────────────
       if (endpoint.startsWith('/properties') && method === 'GET') {
-        // Single property by ID
         const idMatch = endpoint.match(/^\/properties\/([^/]+)$/);
         if (idMatch) {
           const prop = await db.get('properties', idMatch[1]);
@@ -177,12 +226,8 @@ class BridgeApi {
             ? { success: true, status: 200, data: prop as any }
             : { success: false, status: 404, message: 'Not found' };
         }
-
-        // List with filters from query string in body
         let props = await db.getAll('properties');
         const f: Partial<PropertyFilters> = body || {};
-
-        // Backfill legacy data
         props = props.map(p => {
           if (!p.lat) {
             const seed = DISTRICT_COORDS_SEED[p.district] || { lat: 9.05, lng: 7.49 };
@@ -190,45 +235,12 @@ class BridgeApi {
             p.lng = seed.lng + rand(-0.01, 0.01);
           }
           if (!p.agentName) p.agentName = 'Verified Agent #01';
-          if (p.bedrooms === undefined) p.bedrooms = 2;
-          if (p.bathrooms === undefined) p.bathrooms = 1;
-          if (p.sqm === undefined) p.sqm = 80;
-          // Backfill real images if still placeholder
           if (!p.images || p.images.length === 0 || p.images[0].startsWith('data:')) {
             p.images = getImagesForDistrict(p.district);
           }
           return p;
         });
-
-        if (f.search) {
-          const q = f.search.toLowerCase();
-          props = props.filter(p =>
-            p.title.toLowerCase().includes(q) ||
-            p.description?.toLowerCase().includes(q) ||
-            p.address.toLowerCase().includes(q) ||
-            p.district.toLowerCase().includes(q)
-          );
-        }
-        if (f.district) props = props.filter(p => p.district === f.district);
-        if (f.type)     props = props.filter(p => p.type === f.type);
-        if (f.status)   props = props.filter(p => p.status === f.status);
-        if (f.verified === true)  props = props.filter(p => p.isVerified);
-        if (f.verified === false) props = props.filter(p => !p.isVerified);
-        if (f.minRent)  props = props.filter(p => p.baseRent >= Number(f.minRent));
-        if (f.maxRent)  props = props.filter(p => p.baseRent <= Number(f.maxRent));
-        if (f.bedrooms) props = props.filter(p => p.bedrooms >= Number(f.bedrooms));
-        if (f.bathrooms) props = props.filter(p => p.bathrooms >= Number(f.bathrooms));
-
-        // Sort
-        const sortBy = f.sortBy || 'createdAt';
-        const sortDir = f.sortDir || 'desc';
-        props.sort((a, b) => {
-          const aVal = (a as any)[sortBy] ?? '';
-          const bVal = (b as any)[sortBy] ?? '';
-          return sortDir === 'asc' ? (aVal > bVal ? 1 : -1) : (aVal < bVal ? 1 : -1);
-        });
-
-        return { success: true, status: 200, data: props.reverse() as any };
+        return { success: true, status: 200, data: props as any };
       }
 
       if (endpoint === '/properties' && method === 'POST') {
@@ -241,22 +253,12 @@ class BridgeApi {
           bedrooms: Number(body.bedrooms) || 1,
           bathrooms: Number(body.bathrooms) || 1,
           sqm: Number(body.sqm) || 0,
-          furnished: Boolean(body.furnished),
-          parking: Boolean(body.parking),
           lat: seed.lat + rand(-0.01, 0.01),
           lng: seed.lng + rand(-0.01, 0.01),
           agencyFee: baseRent * 0.1,
           legalFee: baseRent * 0.1,
-          totalInitialPayment:
-            baseRent + baseRent * 0.2 +
-            (Number(body.serviceCharge) || 0) +
-            (Number(body.cautionFee) || 0),
-          // Use uploaded images if provided, otherwise fall back to district stock photos
-          images: (body.images && body.images.length > 0 && !body.images[0].startsWith('data:'))
-            ? body.images
-            : (body.images && body.images.length > 0)
-              ? body.images  // keep base64 uploads as-is
-              : getImagesForDistrict(body.district),
+          totalInitialPayment: baseRent + baseRent * 0.2 + (Number(body.serviceCharge) || 0) + (Number(body.cautionFee) || 0),
+          images: (body.images && body.images.length > 0) ? body.images : getImagesForDistrict(body.district),
           isVerified: false,
           verificationStage: 'listing_created',
           agentId: userId,
@@ -268,39 +270,6 @@ class BridgeApi {
         return { success: true, status: 201, data: newProperty as any };
       }
 
-      // ── VERIFY ─────────────────────────────────────────────────────────────
-      const verifyMatch = endpoint.match(/^\/properties\/([^/]+)\/verify$/);
-      if (verifyMatch && method === 'POST') {
-        const prop = await db.get('properties', verifyMatch[1]);
-        if (!prop) return { success: false, status: 404, message: 'Not found' };
-        const idx = STAGES.indexOf(prop.verificationStage);
-        if (idx === STAGES.length - 1)
-          return { success: false, status: 400, message: 'Already verified' };
-        const nextStage = STAGES[idx + 1];
-        const updated = { ...prop, verificationStage: nextStage, isVerified: nextStage === 'verified' };
-        await db.put('properties', updated);
-        return { success: true, status: 200, data: updated as any };
-      }
-
-      // ── BOOK INSPECTION ────────────────────────────────────────────────────
-      const bookMatch = endpoint.match(/^\/properties\/([^/]+)\/book-inspection$/);
-      if (bookMatch && method === 'POST') {
-        const prop = await db.get('properties', bookMatch[1]);
-        if (!prop) return { success: false, status: 404, message: 'Not found' };
-        const idx = STAGES.indexOf(prop.verificationStage);
-        const targetIdx = STAGES.indexOf('inspection_scheduled');
-        const newStage = idx < targetIdx ? STAGES[idx + 1] : prop.verificationStage;
-        const updated = {
-          ...prop,
-          verificationStage: newStage,
-          isVerified: newStage === 'verified',
-          lastInspectionRequest: { tenantId: userId, tenantName: userName, requestedAt: new Date().toISOString() },
-        };
-        await db.put('properties', updated);
-        return { success: true, status: 200, data: updated as any };
-      }
-
-      // ── FAVORITES ──────────────────────────────────────────────────────────
       if (endpoint === '/favorites' && method === 'GET') {
         const favIds = mockFavorites.get(userId) || new Set<string>();
         const favProps: Property[] = [];
@@ -311,54 +280,25 @@ class BridgeApi {
         return { success: true, status: 200, data: favProps as any };
       }
 
-      if (endpoint === '/favorites/ids' && method === 'GET') {
-        const favIds = mockFavorites.get(userId) || new Set<string>();
-        return { success: true, status: 200, data: [...favIds] as any };
-      }
-
       const favAddMatch = endpoint.match(/^\/favorites\/([^/]+)$/);
       if (favAddMatch && method === 'POST') {
         if (!mockFavorites.has(userId)) mockFavorites.set(userId, new Set());
         mockFavorites.get(userId)!.add(favAddMatch[1]);
         return { success: true, status: 200, data: { propertyId: favAddMatch[1], saved: true } as any };
       }
-
       if (favAddMatch && method === 'DELETE') {
         mockFavorites.get(userId)?.delete(favAddMatch[1]);
         return { success: true, status: 200, data: { propertyId: favAddMatch[1], saved: false } as any };
       }
 
-      // ── TASKS ──────────────────────────────────────────────────────────────
       if (endpoint.startsWith('/tasks') && method === 'GET') {
         const tasks = await db.getAll('tasks');
         return { success: true, status: 200, data: tasks.filter(t => t.userId === userId) as any };
       }
-
       if (endpoint === '/tasks' && method === 'POST') {
-        const newTask: Task = {
-          _id: crypto.randomUUID(),
-          userId,
-          ...body,
-          status: body.status || 'todo',
-          createdAt: new Date().toISOString(),
-        };
+        const newTask: Task = { _id: crypto.randomUUID(), userId, ...body, status: 'todo', createdAt: new Date().toISOString() };
         await db.add('tasks', newTask);
         return { success: true, status: 201, data: newTask as any };
-      }
-
-      if (endpoint.startsWith('/tasks/') && method === 'PUT') {
-        const id = endpoint.split('/').pop()!;
-        const existing = await db.get('tasks', id);
-        if (!existing) return { success: false, status: 404, message: 'Task not found' };
-        const updated = { ...existing, ...body };
-        await db.put('tasks', updated);
-        return { success: true, status: 200, data: updated as any };
-      }
-
-      if (endpoint.startsWith('/tasks/') && method === 'DELETE') {
-        const id = endpoint.split('/').pop()!;
-        await db.delete('tasks', id);
-        return { success: true, status: 200, data: { id } as any };
       }
 
       return { success: false, status: 404, message: 'Not found' };
@@ -367,106 +307,42 @@ class BridgeApi {
     }
   }
 
-  public async get<T>(endpoint: string, filters?: any) {
-    return this.bridgeRequest<T>('GET', endpoint, filters);
-  }
-  public async post<T>(endpoint: string, body: any) {
-    return this.bridgeRequest<T>('POST', endpoint, body);
-  }
-  public async put<T>(endpoint: string, body: any) {
-    return this.bridgeRequest<T>('PUT', endpoint, body);
-  }
-  public async delete<T>(endpoint: string) {
-    return this.bridgeRequest<T>('DELETE', endpoint);
-  }
+  public async get<T>(endpoint: string, filters?: any) { return this.bridgeRequest<T>('GET', endpoint, filters); }
+  public async post<T>(endpoint: string, body: any) { return this.bridgeRequest<T>('POST', endpoint, body); }
+  public async put<T>(endpoint: string, body: any) { return this.bridgeRequest<T>('PUT', endpoint, body); }
+  public async delete<T>(endpoint: string) { return this.bridgeRequest<T>('DELETE', endpoint); }
   public isLiveMode(): boolean { return !!BACKEND_URL; }
 }
 
 const api = new BridgeApi();
 export default api;
 
-// ── Demo Seed: pre-populate with sample listings so the app isn't empty ───────
 const SEED_PROPERTIES = [
   {
-    title: 'Luxury 4-Bed Villa',         district: 'Maitama',    type: 'House',
+    title: 'Luxury 4-Bed Villa', district: 'Maitama', type: 'House',
     address: '14 Ministers Hill, Maitama', baseRent: 4500000,
     bedrooms: 4, bathrooms: 3, sqm: 320, furnished: true, parking: true,
     verificationStage: 'verified' as VerificationStage, isVerified: true,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Expansive 4-bedroom villa in the heart of Maitama with a private garden, generator, and 24/7 security estate.',
+    description: 'Expansive 4-bedroom villa in the heart of Maitama with a private garden and generator.',
   },
   {
-    title: 'Modern 3-Bed Duplex',         district: 'Asokoro',   type: 'Duplex',
-    address: '8 Asokoro Extension',       baseRent: 3800000,
+    title: 'Modern 3-Bed Duplex', district: 'Asokoro', type: 'Duplex',
+    address: '8 Asokoro Extension', baseRent: 3800000,
     bedrooms: 3, bathrooms: 2, sqm: 240, furnished: true, parking: true,
     verificationStage: 'verified' as VerificationStage, isVerified: true,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Premium duplex in a gated estate with BQ, fitted kitchen, and uninterrupted power supply.',
-  },
-  {
-    title: 'Serviced 2-Bed Apartment',    district: 'Jabi',      type: 'Apartment',
-    address: '33 Jabi Lake Road',         baseRent: 1800000,
-    bedrooms: 2, bathrooms: 2, sqm: 120, furnished: true, parking: true,
-    verificationStage: 'inspection_scheduled' as VerificationStage, isVerified: false,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Stylish serviced apartment overlooking Jabi Lake. Fully furnished with modern fittings.',
-  },
-  {
-    title: 'Spacious 3-Bed Flat',         district: 'Gwarimpa',  type: 'Apartment',
-    address: '5th Avenue Gwarimpa Estate', baseRent: 1500000,
-    bedrooms: 3, bathrooms: 2, sqm: 160, furnished: false, parking: true,
-    verificationStage: 'agent_vetted' as VerificationStage, isVerified: false,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Spacious 3-bedroom flat in Nigeria\'s largest housing estate with easy access to major roads.',
-  },
-  {
-    title: 'Executive 5-Bed Mansion',     district: 'Guzape',    type: 'House',
-    address: 'Plot 21 Guzape Hills',      baseRent: 5500000,
-    bedrooms: 5, bathrooms: 4, sqm: 480, furnished: true, parking: true,
-    verificationStage: 'verified' as VerificationStage, isVerified: true,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Grand mansion with panoramic views over Abuja city, swimming pool, and a staff quarters.',
-  },
-  {
-    title: 'Cozy 1-Bed Studio',           district: 'Wuse',      type: 'Apartment',
-    address: 'Zone 5, Wuse',              baseRent: 950000,
-    bedrooms: 1, bathrooms: 1, sqm: 55,  furnished: true, parking: false,
-    verificationStage: 'docs_uploaded' as VerificationStage, isVerified: false,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Compact studio apartment in the heart of Wuse. Ideal for young professionals.',
-  },
-  {
-    title: '2-Bed Bungalow',              district: 'Life Camp',  type: 'Bungalow',
-    address: 'Life Camp Extension',        baseRent: 1200000,
-    bedrooms: 2, bathrooms: 1, sqm: 90,  furnished: false, parking: true,
-    verificationStage: 'verified' as VerificationStage, isVerified: true,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Quiet bungalow in the expat-friendly Life Camp neighbourhood. Close to international schools.',
-  },
-  {
-    title: 'Semi-Detached 4-Bed House',   district: 'Katampe',   type: 'House',
-    address: 'Katampe Extension Phase 2', baseRent: 2800000,
-    bedrooms: 4, bathrooms: 3, sqm: 270, furnished: false, parking: true,
-    verificationStage: 'verified' as VerificationStage, isVerified: true,
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    description: 'Beautiful semi-detached house on Abuja\'s hilltop with fresh mountain breeze and modern finishings.',
+    description: 'Premium duplex in a gated estate with BQ and fitted kitchen.',
   },
 ];
 
 async function seedDemoData() {
   try {
     const existing = await db.getAll('properties');
-    if (existing.length > 0) return; // Don't re-seed if data exists
-
+    if (existing.length > 0) return;
     const agentId = 'demo-agent-001';
     const agentName = 'Verifind Demo Agent';
-    const SEED_COORDS = DISTRICT_COORDS_SEED;
-
     for (const seed of SEED_PROPERTIES) {
-      const coords = SEED_COORDS[seed.district] || { lat: 9.05, lng: 7.49 };
+      const coords = DISTRICT_COORDS_SEED[seed.district] || { lat: 9.05, lng: 7.49 };
       const br = seed.baseRent;
-      const sc = br * 0.05;
-      const cf = br * 0.1;
       const prop: Property = {
         _id: crypto.randomUUID(),
         title: seed.title,
@@ -475,18 +351,15 @@ async function seedDemoData() {
         address: seed.address,
         type: seed.type as any,
         baseRent: br,
-        serviceCharge: sc,
-        cautionFee: cf,
         agencyFee: br * 0.1,
         legalFee: br * 0.1,
-        totalInitialPayment: br + br * 0.2 + sc + cf,
+        totalInitialPayment: br + br * 0.2,
         bedrooms: seed.bedrooms,
         bathrooms: seed.bathrooms,
         sqm: seed.sqm,
         furnished: seed.furnished,
         parking: seed.parking,
         images: getImagesForDistrict(seed.district),
-        videoUrl: seed.videoUrl,
         lat: coords.lat + rand(-0.008, 0.008),
         lng: coords.lng + rand(-0.008, 0.008),
         agentId,
@@ -494,16 +367,14 @@ async function seedDemoData() {
         isVerified: seed.isVerified,
         verificationStage: seed.verificationStage,
         status: 'available',
-        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString(),
       };
       await db.add('properties', prop);
     }
-    console.log('✅ Verifind: Demo listings seeded successfully');
+    console.log('✅ Verifind: Demo listings seeded');
   } catch (e) {
     console.warn('Seed skipped:', e);
   }
 }
 
-// Run seed on app load
 seedDemoData();
-

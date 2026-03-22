@@ -3,96 +3,98 @@ import api from '../services/api';
 import { User, AuthResponse } from '../types';
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<AuthResponse>;
-  register: (username: string, email: string, password: string, role?: string) => Promise<AuthResponse>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
-  resetPassword:  (otp: string, newPassword: string, email: string) => Promise<{ success: boolean; message?: string }>;
-  logout: () => void;
-  loading: boolean;
+  user:            User | null;
+  loading:         boolean;
   isAuthenticated: boolean;
+  login:           (email: string, password: string) => Promise<AuthResponse>;
+  // Step 1 — sends OTP, stores nothing locally yet
+  sendOtp:         (username: string, email: string, password: string, role: 'tenant' | 'agent') => Promise<{ sent: boolean; message: string; devOtp?: string }>;
+  // Step 2 — verifies OTP, creates user, logs them in
+  verifyOtp:       (email: string, otp: string) => Promise<AuthResponse>;
+  logout:          () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
-
 export const useAuth = () => useContext(AuthContext);
+
+const KEYS = { TOKEN: 'vf_token', USER: 'vf_user' };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user,    setUser]    = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const STORAGE_KEYS = { TOKEN: 'vf_token', USER: 'vf_user', REMEMBER: 'vf_remember' };
-
   useEffect(() => {
-    const token      = localStorage.getItem(STORAGE_KEYS.TOKEN) || sessionStorage.getItem(STORAGE_KEYS.TOKEN);
-    const storedUser = localStorage.getItem(STORAGE_KEYS.USER)  || sessionStorage.getItem(STORAGE_KEYS.USER);
-    if (token && storedUser) {
-      try { setUser(JSON.parse(storedUser)); } catch {
-        localStorage.removeItem(STORAGE_KEYS.USER);
-        localStorage.removeItem(STORAGE_KEYS.TOKEN);
-      }
+    const token  = localStorage.getItem(KEYS.TOKEN);
+    const stored = localStorage.getItem(KEYS.USER);
+    if (token && stored) {
+      try { setUser(JSON.parse(stored)); }
+      catch { localStorage.removeItem(KEYS.TOKEN); localStorage.removeItem(KEYS.USER); }
     }
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string, rememberMe = false): Promise<AuthResponse> => {
+  // ── Login ──────────────────────────────────────────────────────────────────
+  const login = async (email: string, password: string): Promise<AuthResponse> => {
     try {
-      const response = await api.post('/auth/login', { email, password }) as any;
-      const { token, user } = response.data as { token: string; user: User };
-      /* Remember me → localStorage (persists); else → sessionStorage (clears on tab close) */
-      const store = rememberMe ? localStorage : sessionStorage;
-      store.setItem(STORAGE_KEYS.TOKEN, token);
-      store.setItem(STORAGE_KEYS.USER,  JSON.stringify(user));
-      if (rememberMe) localStorage.setItem(STORAGE_KEYS.REMEMBER, 'true');
-      setUser(user);
-      return { success: true, user, token };
-    } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || 'Login failed' };
+      const res  = await api.post('/api/auth/login', { email, password }) as any;
+      const data = res.data as { token: string; user: User };
+      localStorage.setItem(KEYS.TOKEN, data.token);
+      localStorage.setItem(KEYS.USER, JSON.stringify(data.user));
+      setUser(data.user);
+      return { success: true, user: data.user, token: data.token };
+    } catch (err: any) {
+      return { success: false, message: err?.response?.data?.message || 'Login failed' };
     }
   };
 
-  const register = async (username: string, email: string, password: string, role = 'tenant'): Promise<AuthResponse> => {
+  // ── Step 1: Send OTP ───────────────────────────────────────────────────────
+  // Does NOT log the user in yet — just triggers the email.
+  const sendOtp = async (
+    username: string,
+    email:    string,
+    password: string,
+    role:     'tenant' | 'agent',
+  ): Promise<{ sent: boolean; message: string; devOtp?: string }> => {
     try {
-      const response = await api.post('/auth/register', { username, email, password, role }) as any;
-      const { token, user } = response.data as { token: string; user: User };
-      localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.USER,  JSON.stringify(user));
-      setUser(user);
-      return { success: true, user, token };
-    } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || 'Registration failed' };
+      const res = await api.post('/api/auth/send-otp', { username, email, password, role }) as any;
+      if (res.data?.devOtp) {
+        console.log('%c[DEV] OTP Generated: ' + res.data.devOtp, 'background: #2563EB; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+      }
+      return { sent: true, message: res.data?.message || 'Code sent', devOtp: res.data?.devOtp };
+    } catch (err: any) {
+      return {
+        sent:    false,
+        message: err?.response?.data?.message || 'Failed to send verification code',
+      };
     }
   };
 
-  const forgotPassword = async (email: string) => {
+  // ── Step 2: Verify OTP ─────────────────────────────────────────────────────
+  // Creates the real user account, logs them in, stores token.
+  const verifyOtp = async (email: string, otp: string): Promise<AuthResponse> => {
     try {
-      await api.post('/auth/forgot-password', { email });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || 'Failed to send reset email' };
+      const res  = await api.post('/api/auth/verify-email', { email, otp }) as any;
+      const data = res.data as { token: string; user: User };
+      localStorage.setItem(KEYS.TOKEN, data.token);
+      localStorage.setItem(KEYS.USER, JSON.stringify(data.user));
+      setUser(data.user);
+      return { success: true, user: data.user, token: data.token };
+    } catch (err: any) {
+      const msg     = err?.response?.data?.message || 'Verification failed';
+      const expired = err?.response?.data?.expired  || false;
+      return { success: false, message: msg, ...(expired ? { expired: true } : {}) };
     }
   };
 
-  const resetPassword = async (otp: string, newPassword: string, email: string) => {
-    try {
-      await api.post('/auth/reset-password', { otp, newPassword, email });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, message: error.response?.data?.message || 'Password reset failed' };
-    }
-  };
-
+  // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = () => {
-    localStorage.removeItem(STORAGE_KEYS.TOKEN);
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.REMEMBER);
-    sessionStorage.removeItem(STORAGE_KEYS.TOKEN);
-    sessionStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(KEYS.TOKEN);
+    localStorage.removeItem(KEYS.USER);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, forgotPassword, resetPassword, logout, loading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, isAuthenticated: !!user, login, sendOtp, verifyOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

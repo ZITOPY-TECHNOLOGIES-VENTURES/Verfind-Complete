@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Verifind | Verified Abuja Real Estate</title>
 
-    <link rel="modulepreload" href="https://esm.sh/react@18.2.0">
-    <link rel="modulepreload" href="https://esm.sh/react-dom@18.2.0">
-
     <script>
       window.process = { env: { API_KEY: "" } };
 
@@ -20,37 +17,14 @@
         document.documentElement.setAttribute('data-theme', theme);
         document.documentElement.classList.toggle('dark', theme === 'dark');
       })();
-
-      window.addEventListener('error', function(e) {
-        if (e.message && (e.message.includes('module') || e.message.includes('import'))) {
-          var l = document.getElementById('verifind-preloader');
-          if (l) l.innerHTML = '<div style="color:#1a1a1a;font-family:sans-serif;text-align:center;padding:40px"><h2 style="color:#d92d20">Connection Error</h2><p>Check your internet and reload.</p><button onclick="location.reload()" style="margin-top:16px;padding:12px 28px;background:#0A66C2;border:none;color:#fff;border-radius:14px;font-weight:700;cursor:pointer">Retry</button></div>';
-        }
-      });
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,300;400;700&display=swap" rel="stylesheet">
 
-    <script type="importmap">
-{
-  "imports": {
-    "react":             "https://esm.sh/react@18.2.0",
-    "react-dom":         "https://esm.sh/react-dom@18.2.0",
-    "react-dom/client":  "https://esm.sh/react-dom@18.2.0/client",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-router-dom":  "https://esm.sh/react-router-dom@6.22.3?deps=react@18.2.0,react-dom@18.2.0",
-    "lucide-react":      "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0",
-    "react-markdown":    "https://esm.sh/react-markdown@8.0.7?deps=react@18.2.0",
-    "@google/genai":     "https://esm.sh/@google/genai@1.34.0",
-    "idb":               "https://esm.sh/idb@8.0.0",
-    "react-dom/":        "https://esm.sh/react-dom@^19.2.3/",
-    "react/":            "https://esm.sh/react@^19.2.3/"
-  }
-}
-    </script>
 
     <style>
 /* ═══════════════════════════════════════════════════════════════════════
@@ -377,6 +351,22 @@ select {
 .focus\:border-primary:focus { border-color: var(--color-primary); }
 .focus\:ring-2:focus { box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb),.15); }
 
+/* Liquid Background Styles */
+.liquid-bg-container {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.liquid-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.8;
+  animation: float-anim ease-in-out infinite alternate;
+}
+
 /* ══════════════════════════════════════════════
    ANIMATIONS
    ══════════════════════════════════════════════ */
@@ -478,16 +468,64 @@ select {
 
   <body>
     <div id="verifind-preloader">
-      <div class="logo-container">
-        <svg class="logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 80 L20 40 L50 15 L80 40 L80 25 L90 25 L90 50 L80 50 L80 80 Z" fill="#0A66C2"/>
-          <path d="M20 40 L50 45 L80 40 L50 15 Z" fill="#0A66C2" fill-opacity="0.20"/>
-          <path d="M65 15 L85 15 L85 35 M50 50 L85 15" stroke="#0A66C2" stroke-width="5"
-                stroke-linecap="round" stroke-linejoin="round"/>
+      <style>
+        @keyframes vf-inL  { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:none} }
+        @keyframes vf-inR  { from{opacity:0;transform:translateX(30px)}  to{opacity:1;transform:none} }
+        @keyframes vf-rise { from{opacity:0;transform:translateY(20px)}  to{opacity:1;transform:none} }
+        @keyframes vf-pop  { from{opacity:0;transform:scale(.70)}        to{opacity:1;transform:none} }
+        @keyframes vf-draw { from{stroke-dashoffset:295} to{stroke-dashoffset:0} }
+        @keyframes vf-drop {
+          0%   { opacity:0; transform:translateY(-26px) scale(.6) }
+          55%  { opacity:1; transform:translateY(5px)   scale(1.12) }
+          80%  { transform:translateY(-2px) scale(.97) }
+          100% { opacity:1; transform:none }
+        }
+        @keyframes vf-up   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+        @keyframes vf-idle { 0%,100%{transform:scale(1)} 50%{transform:scale(1.018)} }
+
+        .A .rl { animation: vf-inL  .65s cubic-bezier(.22,1,.36,1) both  .05s }
+        .A .rr { animation: vf-inR  .65s cubic-bezier(.22,1,.36,1) both  .15s }
+        .A .sk { animation: vf-rise .5s  ease-out              both  .50s }
+        .A .ho { animation: vf-pop  .42s ease-out              both  .85s }
+        .A .ch { stroke-dasharray: 295; stroke-dashoffset: 295; animation: vf-draw 1.0s cubic-bezier(.4,0,.2,1) both 1.00s; }
+        .A .lk { animation: vf-drop .55s cubic-bezier(.22,1,.36,1) both  1.65s }
+        .A .tv { animation: vf-up   .45s ease-out              both  1.90s }
+        .A .tf { animation: vf-up   .45s ease-out              both  2.10s }
+        .A     { animation: vf-idle 4.0s ease-in-out       infinite  2.80s }
+      </style>
+      
+      <div style="width: 140px; margin-bottom: 24px; position: relative; z-index: 1;">
+        <svg id="vfl" class="A" width="100%" viewBox="0 0 360 288" style="display:block;overflow:visible" xmlns="http://www.w3.org/2000/svg">
+          <g class="rl">
+            <path d="M 0,206 L 0,88 C 4,52 20,24 55,13 C 77,5  100,11 113,30 C 126,51 133,90 136,140 C 137,162 138,184 138,206 Z" fill="#1B3068"/>
+          </g>
+          <g class="rr">
+            <path d="M 360,206 L 360,88 C 356,52 340,24 305,13 C 283,5  260,11 247,30 C 234,51 227,90 224,140 C 223,162 222,184 222,206 Z" fill="#1B3068"/>
+          </g>
+          <g class="sk" fill="#1B3068">
+            <rect x="141" y="177" width="9" height="29"/> <rect x="152" y="166" width="10" height="40"/>
+            <rect x="164" y="173" width="8" height="33"/> <rect x="174" y="160" width="9" height="46"/>
+            <rect x="185" y="167" width="8" height="39"/> <rect x="195" y="172" width="9" height="34"/>
+            <rect x="206" y="165" width="8" height="41"/> <rect x="216" y="175" width="8" height="31"/>
+          </g>
+          <polyline class="ch" points="82,148 150,196 294,58" fill="none" stroke="#2D8B1E" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+          <g class="ho">
+            <polygon points="128,174 150,153 172,174" fill="#C07818"/>
+            <rect x="132" y="174" width="36" height="25" rx="2" fill="#C07818"/>
+            <rect x="143" y="182" width="11" height="17" rx="1" fill="rgba(27,48,104,.50)"/>
+            <rect x="134" y="178" width="7" height="6" rx="1" fill="rgba(27,48,104,.38)"/>
+            <rect x="159" y="178" width="7" height="6" rx="1" fill="rgba(27,48,104,.38)"/>
+          </g>
+          <g class="lk" transform="translate(285,45)">
+            <path d="M -7,1 L -7,-9 A 7,10 0 0 1 7,-9 L 7,1" fill="none" stroke="#2D8B1E" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="-12" y="1" width="24" height="20" rx="5" fill="#2D8B1E"/>
+            <circle cx="0" cy="9.5" r="3.5" fill="rgba(255,255,255,.72)"/>
+            <rect x="-1.6" y="11.5" width="3.2" height="5" rx="1" fill="rgba(255,255,255,.72)"/>
+          </g>
+          <text class="tv" x="68" y="268" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif" font-size="56" font-weight="900" fill="#1B3068" letter-spacing="-1">Ver</text>
+          <text class="tf" x="178" y="268" font-family="'Arial Black','Franklin Gothic Heavy',Impact,sans-serif" font-size="56" font-weight="900" fill="#2D8B1E" letter-spacing="-1">Find</text>
         </svg>
       </div>
-      <div class="loader-text">Verifind</div>
-      <div class="status-line"><div class="dot"></div>Syncing Engine</div>
     </div>
 
     <div id="root"></div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AppMode, User } from '../types';
 import {
   Search, Building, Wallet, Calendar, MessageSquare,
-  LogOut, Settings, Sun, Moon, LogIn, Globe, Database
+  LogOut, Settings, Sun, Moon, LogIn, Globe, Database, Users
 } from 'lucide-react';
 import { useTheme, AccentColor, FontSize } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,9 +14,10 @@ interface SidebarProps {
   currentMode: AppMode | 'profile';
   onModeChange: (mode: any) => void;
   user: User | null;
+  onFindAgentClick?: (e: React.MouseEvent) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentMode, onModeChange, user }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentMode, onModeChange, user, onFindAgentClick }) => {
   const { theme, resolvedTheme, toggleTheme, setTheme, accent, setAccent, fontSize, setFontSize } = useTheme();
   const { logout } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
@@ -26,10 +27,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentMode, onModeChange, use
 
   const modes = [
     { id: AppMode.BROWSE,           label: 'Browse',    icon: <Search size={18} />        },
+    { id: AppMode.FIND_AGENT,       label: 'Find Agent',icon: <Search size={18} />        }, // Will update icon next
     ...(isAgent ? [{ id: AppMode.MANAGE_LISTINGS, label: 'Listings', icon: <Building size={18} /> }] : []),
     ...(user ? [
       { id: AppMode.INSPECTIONS,    label: 'Calendar',  icon: <Calendar size={18} />      },
-      { id: AppMode.WALLET,         label: 'Escrow',    icon: <Wallet size={18} />        },
+      { id: AppMode.WALLET,         label: 'Payments',  icon: <Wallet size={18} />        },
       { id: AppMode.CHAT_ASSISTANT, label: 'AI Helper', icon: <MessageSquare size={18} /> },
     ] : []),
   ];
@@ -98,7 +100,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentMode, onModeChange, use
             const active = currentMode === mode.id;
             return (
               <button key={mode.id}
-                onClick={() => { onModeChange(mode.id); setShowSettings(false); }}
+                onClick={(e) => { 
+                  if (mode.id === AppMode.FIND_AGENT && onFindAgentClick) {
+                    onFindAgentClick(e);
+                  } else {
+                    onModeChange(mode.id); 
+                  }
+                  setShowSettings(false); 
+                }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-sm"
                 style={{ ...s(active), fontWeight: active ? '700' : '500' }}>
                 <span style={{ color: active ? 'var(--color-primary)' : 'var(--text-muted)' }}>{mode.icon}</span>

@@ -101,6 +101,7 @@ export interface Property {
   videoUrl: string;
   agentId: string;
   agentName: string;
+  agentPhone?: string;
 
   // Status
   isVerified: boolean;
@@ -151,7 +152,9 @@ export enum AppMode {
   INSPECTIONS = 'inspections',
   WALLET = 'wallet',
   CHAT_ASSISTANT = 'chat_assistant',
-  FAVORITES = 'favorites',
+  SAVED = 'saved',
+  ADMIN = 'admin',
+  FIND_AGENT = 'find_agent',
 }
 
 export interface Attachment {

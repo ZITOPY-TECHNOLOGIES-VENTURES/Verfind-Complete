@@ -98,7 +98,7 @@ const onBlur = (e: React.FocusEvent<HTMLInputElement>) => {
 
 /* ══════════════════════════════════════════════════════════ */
 const Register: React.FC = () => {
-  const { register } = useAuth();
+  const { sendOtp, verifyOtp } = useAuth();
   const navigate     = useNavigate();
   const location     = useLocation();
 
@@ -156,18 +156,32 @@ const Register: React.FC = () => {
     go('password');
   };
 
-  const handlePassword = (e: React.FormEvent) => {
+  const handlePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!passValid) return setError('Password does not meet all requirements');
     if (!passMatch) return setError('Passwords do not match');
-    go('verify');
+
+    setLoading(true); setError('');
+    const res = await sendOtp(name, email, password, role);
+
+    if (!res.sent) {
+      setError(res.message);
+      setLoading(false);
+    } else {
+      setLoading(false);
+      go('verify');
+      if (res.devOtp) {
+        // Auto-fill the OTP in development mode so the user doesn't have to hunt for it
+        setOtp(res.devOtp);
+      }
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length < 6) return setError('Enter the 6-digit code sent to your email');
     setLoading(true); setError('');
-    const res = await register(name, email, password, role);
+    const res = await verifyOtp(email, otp);
     if (res.success) {
       navigate(returnTo, {
         replace: true,

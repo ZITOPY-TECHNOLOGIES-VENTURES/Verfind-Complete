@@ -4,11 +4,12 @@ import {
   X, MapPin, ShieldCheck, Calendar, User, FileText,
   ClipboardList, Eye, PhoneCall, Loader2, Check,
   Map, Bed, Bath, Maximize2, Car, Sofa, Play, Heart,
-  ChevronLeft, ChevronRight as ChevronRightIcon
+  ChevronLeft, ChevronRight as ChevronRightIcon, MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { LiveCallOverlay } from './LiveCallOverlay';
+import { PaymentModal } from './PaymentModal';
 
 interface PropertyDetailProps {
   property: Property;
@@ -30,6 +31,7 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({
   const [showVideo, setShowVideo] = useState(false);
   const [imgIdx, setImgIdx] = useState(0);
   const [favLoading, setFavLoading] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
 
   const stages: { key: VerificationStage; label: string; icon: React.ReactNode; desc: string }[] = [
     { key: 'listing_created',      label: 'Listing',      icon: <FileText size={16} />,     desc: 'Initial listing submitted' },
@@ -355,20 +357,39 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({
           <div className="p-5 border-t border-[var(--border-color)] bg-[var(--bg-surface)] flex flex-col gap-3">
             <div className="flex gap-3">
               <button
-                onClick={() => { if (!isAuthenticated) return onContactAgent(); setShowLiveCall(true); }}
-                className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 text-sm font-black text-white hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                onClick={() => {
+                  if (!isAuthenticated) return onContactAgent();
+                  const phone = (property as any).agentPhone || '2348000000000';
+                  window.open(`https://wa.me/${phone}?text=Hi%20${encodeURIComponent(property.agentName)},%20I'm%20interested%20in%20your%20property:%20${encodeURIComponent(property.title)}`, '_blank');
+                }}
+                className="flex-1 py-3.5 rounded-2xl bg-[#25D366] text-white text-sm font-black hover:bg-[#20bd5a] transition-all flex items-center justify-center gap-2 shadow-xl"
               >
-                <PhoneCall size={15} /> AI Voice Call
+                <MessageSquare size={16} /> Contact Agent
               </button>
               <button
                 onClick={handleBookInspection}
                 disabled={isBooking || property.status === 'rented'}
-                className="flex-1 py-3 rounded-2xl bg-primary text-white text-sm font-black hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-xl"
+                className="flex-1 py-3.5 rounded-2xl bg-primary text-white text-sm font-black hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg"
               >
                 {isBooking ? <Loader2 size={15} className="animate-spin" /> : <Calendar size={15} />}
-                {property.status === 'rented' ? 'No Longer Available' : 'Book Inspection'}
+                {property.status === 'rented' ? 'Rented' : 'Tour'}
               </button>
             </div>
+            
+            <button
+              onClick={() => { if (!isAuthenticated) return onContactAgent(); setShowPayment(true); }}
+              disabled={property.status !== 'available'}
+              className="w-full py-3.5 rounded-2xl bg-emerald-600 text-white text-sm font-black hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-xl disabled:opacity-50"
+            >
+              <ShieldCheck size={16} /> Secure This Property
+            </button>
+            
+            <button
+              onClick={() => { if (!isAuthenticated) return onContactAgent(); setShowLiveCall(true); }}
+              className="w-full py-2.5 rounded-xl bg-slate-100 text-[11px] font-bold text-slate-500 hover:bg-slate-200 transition-all flex items-center justify-center gap-2 border border-slate-200"
+            >
+              <PhoneCall size={13} /> Request AI Voice Call
+            </button>
             {!isAuthenticated && (
               <p className="text-center text-[10px] text-[var(--text-muted)] font-medium">
                 <button onClick={onContactAgent} className="text-primary font-bold hover:underline">Sign in</button> to book inspections and save properties
@@ -377,6 +398,20 @@ export const PropertyDetail: React.FC<PropertyDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {showPayment && (
+        <PaymentModal
+          property={property}
+          onClose={() => setShowPayment(false)}
+          onSuccess={() => {
+            setShowPayment(false);
+            if (onUpdate) {
+              onUpdate({ ...property, status: 'under-offer' });
+            }
+          }}
+          onNeedAuth={onContactAgent}
+        />
+      )}
     </div>
   );
 };
