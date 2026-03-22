@@ -213,14 +213,15 @@ function Hero({ onSearch }: { onSearch: (val: string) => void }) {
   const nav = useNavigate();
 
   return (
-    <div style={{ position: "relative", minHeight: 520, overflow: "hidden" }}>
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #0a1628 0%, #0f2860 35%, #1a4fa0 65%, #2d7dd2 100%)" }} />
-      <svg viewBox="0 0 1440 520" preserveAspectRatio="xMidYMax slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.18 }}>
-        <rect x="0" y="300" width="1440" height="220" fill="#fff" />
-        {[[60,200,60,300],[140,150,50,350],[220,260,70,260],[330,180,80,320],[440,130,55,370],[550,220,65,280],[660,160,75,340],[780,190,60,310],[900,140,80,360],[1020,210,55,290],[1140,170,70,330],[1260,200,65,300],[1360,155,55,345]].map(([x,h,w,y],i)=><rect key={i} x={x} y={y} width={w} height={h} fill="#fff" />)}
-        {[[200,100,30],[500,80,25],[900,90,28],[1200,70,22]].map(([x,h,w],i)=><g key={`t${i}`}><rect x={x} y={200-h} width={w} height={h+100} fill="#fff" /><polygon points={`${x+w/2},${200-h-20} ${x},${200-h} ${x+w},${200-h}`} fill="#fff" /></g>)}
-      </svg>
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,22,40,0.7) 0%, rgba(10,22,40,0.3) 60%, transparent 100%)" }} />
+    <div style={{ 
+      position: "relative", 
+      minHeight: 520, 
+      overflow: "hidden",
+      backgroundImage: "url('/abuja_hero.png')",
+      backgroundSize: "cover",
+      backgroundPosition: "center"
+    }}>
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.7) 40%, rgba(10,22,40,0.2) 100%)" }} />
       <div style={{ position: "relative", zIndex: 10, maxWidth: 1280, margin: "0 auto", padding: "120px 24px 64px" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, background: "rgba(5,150,105,0.2)", border: "1px solid rgba(5,150,105,0.4)", marginBottom: 20 }}>
           <ShieldCheck size={13} color="#10B981" />
