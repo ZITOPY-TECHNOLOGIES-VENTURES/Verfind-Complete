@@ -7,91 +7,7 @@ import {
   BookOpen, HeartHandshake, Eye, Layers, Globe, FileText, Lock, ChevronDown, Menu
 } from "lucide-react";
 import { Logo } from "../components/Logo";
-
-// ─── Responsive CSS ──────────────────────────────────────────────────────────
-const RESPONSIVE_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@400;700&display=swap');
-@keyframes vf-blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-.vf-nav-links { display: flex; gap: 4px; }
-.vf-nav-right { display: flex; gap: 8px; align-items: center; }
-.vf-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: inherit; }
-.vf-mobile-menu { display: none; }
-
-.vf-hero-stats { display: flex; gap: 32px; margin-top: 36px; flex-wrap: wrap; }
-.vf-rtb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.vf-district-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 16px; }
-.vf-district-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
-.vf-tier-badges { display: flex; gap: 8px; }
-.vf-verify-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; align-items: start; }
-.vf-trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-.vf-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
-.vf-footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
-.vf-hero-content { padding: 120px 24px 64px; }
-.vf-hero-title { font-size: clamp(38px, 5vw, 60px); }
-.vf-mode-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
-
-/* ── Tablet (≤ 1024px) ─────────────────────────────── */
-@media (max-width: 1024px) {
-  .vf-district-grid { grid-template-columns: repeat(3, 1fr); }
-  .vf-verify-grid { grid-template-columns: 1fr; }
-  .vf-footer-grid { grid-template-columns: 1fr 1fr; }
-}
-
-/* ── Mobile (≤ 768px) ──────────────────────────────── */
-@media (max-width: 768px) {
-  .vf-nav-links { display: none !important; }
-  .vf-nav-right .vf-sign-in { display: none; }
-  .vf-nav-right .vf-list-btn { display: none; }
-  .vf-hamburger { display: flex !important; align-items: center; justify-content: center; }
-  
-  .vf-mobile-menu {
-    position: fixed; top: 70px; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.98); backdrop-filter: blur(12px);
-    z-index: 999; padding: 24px;
-    display: flex; flex-direction: column; gap: 8px;
-    animation: vf-slideDown 0.2s ease-out;
-  }
-  .vf-mobile-menu a {
-    display: block; padding: 14px 16px; border-radius: 12px; font-size: 16px;
-    font-weight: 600; color: #111116; text-decoration: none; background: #F8FAFF;
-    border: 1px solid #E5E7EB;
-  }
-  .vf-mobile-menu a:active { background: #EEF2FF; }
-  
-  @keyframes vf-slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
-  .vf-hero-content { padding: 100px 16px 40px; }
-  .vf-hero-title { font-size: 32px !important; }
-  .vf-hero-subtitle { font-size: 15px !important; margin-bottom: 24px !important; }
-  .vf-hero-stats { gap: 16px; margin-top: 24px; }
-  .vf-hero-stats > div { min-width: 40%; }
-  
-  .vf-rtb-grid { grid-template-columns: 1fr; gap: 16px; }
-  .vf-district-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .vf-district-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .vf-district-header h2 { font-size: 24px !important; }
-  .vf-tier-badges { flex-wrap: wrap; }
-  
-  .vf-verify-grid { grid-template-columns: 1fr; gap: 24px; }
-  .vf-verify-title { font-size: 24px !important; }
-  
-  .vf-trust-grid { grid-template-columns: 1fr; gap: 16px; }
-  .vf-trust-heading { font-size: 26px !important; }
-  
-  .vf-footer-grid { grid-template-columns: 1fr; gap: 24px; }
-  .vf-footer-bottom { flex-direction: column; text-align: center; }
-}
-
-/* ── Small Phone (≤ 480px) ─────────────────────────── */
-@media (max-width: 480px) {
-  .vf-hero-content { padding: 90px 14px 32px; }
-  .vf-hero-title { font-size: 28px !important; }
-  .vf-district-grid { grid-template-columns: 1fr; }
-  .vf-mode-tabs { gap: 6px; }
-  .vf-mode-tabs button { padding: 7px 14px !important; font-size: 13px !important; }
-}
-`;
+import "./Home.css";
 
 // ─── Simulated Verifind Backend ───────────────────────────────────────────────
 const API = {
@@ -321,10 +237,10 @@ function Hero({ onSearch }: { onSearch: (val: string) => void }) {
           <ShieldCheck size={13} color="#10B981" />
           <span style={{ fontSize: 12, color: "#10B981", fontWeight: 700, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.05em" }}>{stats.verifiedListings} Abuja True Verified™ listings</span>
         </div>
-        <h1 className="vf-hero-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400, color: "#fff", margin: "0 0 16px", lineHeight: 1.1, letterSpacing: "-0.03em", maxWidth: 580 }}>
+        <h1 className="vf-hero-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400, color: "#fff", margin: "0 0 16px", lineHeight: 1.1, letterSpacing: "-0.03em", maxWidth: 580, fontSize: "clamp(28px, 5vw, 60px)" }}>
           Rent. Buy. Verify.<br /><span style={{ color: "#60A5FA" }}>Abuja FCT.</span>
         </h1>
-        <p className="vf-hero-subtitle" style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, margin: "0 0 36px", fontFamily: "'DM Sans', sans-serif", maxWidth: 480, lineHeight: 1.6 }}>
+        <p className="vf-hero-subtitle" style={{ color: "rgba(255,255,255,0.7)", margin: "0 0 36px", fontFamily: "'DM Sans', sans-serif", maxWidth: 480, lineHeight: 1.6 }}>
           Nigeria's first fully verified real estate marketplace. Every listing passes a 4-stage AGIS verification.
         </p>
         <div className="vf-mode-tabs">
@@ -567,8 +483,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div style={{ background: "#fff", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
-      <style>{RESPONSIVE_CSS}</style>
+    <div className="vf-home" style={{ background: "#fff", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
       <TopNav scrolled={scrolled} />
       <Hero onSearch={(q) => navigate('/dashboard')} />
       <RTBSection />
