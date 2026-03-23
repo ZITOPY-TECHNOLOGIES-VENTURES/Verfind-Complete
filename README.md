@@ -1,87 +1,145 @@
 # Verifind
 
-Verifind is a secure and verified real estate platform focused on the Abuja market. It connects tenants with verified agents and features an escrow payment system to ensure completely secure transactions.
+> Nigeria's first fully verified real estate marketplace — Serving Abuja, FCT.
 
-## Features
+![Verifind](https://img.shields.io/badge/Status-Active-10B981?style=flat-square) ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)
 
-- Property Listing and Verification Workflow
-- Secure Escrow Payments (Paystack Integration)
-- Role-based Authentication (Tenant / Agent) with OTP Verification
-- Agent Certification Tracking and Dashboard
-- Responsive Liquid Glass UI Design
+Verifind connects tenants with verified agents and verified property listings across Abuja's key districts. Every listing undergoes a **4-stage AGIS verification** pipeline before being published, and all payments are protected through **Paystack-powered escrow**.
 
-## Tech Stack
+---
 
-- Frontend: React (Vite), TypeScript, Tailwind CSS, Lucide React
-- Backend: Node.js, Express.js, MongoDB (Mongoose)
-- Security: JSON Web Tokens (JWT), bcrypt, Helmet, Express Rate Limit
-- Integrations: Paystack (Payments), Resend (Email)
+## ✨ Key Features
 
-## Application Architecture
+### 🏠 Zillow-Inspired Homepage
+- Animated search bar with typewriter suggestions
+- Rent / Buy / Sell mode tabs
+- Interactive district grid with 12 Abuja districts (Maitama, Asokoro, Guzape, Jabi…)
+- RTB (Rent-Buy-Sell) action cards
+- Fully responsive — hamburger menu on mobile, stacking grids on tablet/phone
 
-The platform is split into a separate frontend and backend application. 
+### 🔒 4-Stage Verification Pipeline
+| Stage | Description |
+|-------|-------------|
+| 1. Listing Created | Agent submits property details |
+| 2. Documents Uploaded | C-of-O, survey plan, agent licence |
+| 3. Legal Title Search | Cross-checked against AGIS database |
+| 4. Physical Site Audit | Certified inspector visits property |
+| ✅ **Abuja True Verified™** | Badge awarded, listing goes live |
 
-For frontend development, the application features an intricate Offline Mock Engine. If the frontend cannot reach the backend server, it will automatically intercept API calls and use a simulated IndexedDB/localStorage database to process robust authentication (OTP generation and validation) and property management locally.
+### 💰 Escrow Payment System
+- Paystack integration for secure fund holding
+- Funds released to agent only after tenant inspection
+- Bank account resolution and transfer recipient setup
+- Full transaction history and wallet view
 
-## Getting Started
+### 👤 Role-Based Authentication
+- **Tenant**: Browse, save, book inspections, escrow payments
+- **Agent**: List properties, upload documents, track verification, receive payouts
+- JWT-based auth with OTP verification
+- Offline Mock Engine for development without backend
+
+### 🎨 Premium UI
+- Liquid Glass design system with dark/light/auto themes
+- AI Chat FAB (floating action button)
+- Saved Homes FAB with edge-snapping
+- Fraunces + DM Sans typography
+
+---
+
+## 🏗 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Vite, Lucide React |
+| **Backend** | Node.js, Express.js, MongoDB (Mongoose) |
+| **Payments** | Paystack (escrow, transfers, recipients) |
+| **Auth** | JWT, bcrypt, Helmet, Rate Limiting |
+| **Email** | Resend API |
+| **Deployment** | Vercel (frontend), Render/Railway (backend) |
+
+---
+
+## 🏛 Architecture
+
+```
+┌──────────────────────────────────────────────────────┐
+│            VERIFIND PLATFORM                         │
+│                                                      │
+│  Frontend (React + Vite)                             │
+│    /              → Home (Zillow-style landing)      │
+│    /dashboard     → Dashboard (listings, map, FABs)  │
+│    /login         → AuthFlow (Login/Register/Reset)  │
+│                                                      │
+│  Backend (Express + MongoDB)                         │
+│    GET  /api/properties                              │
+│    POST /api/properties/:id/verify                   │
+│    GET  /api/banks                                   │
+│    POST /api/banks/resolve                           │
+│    POST /api/banks/setup                             │
+│    GET  /api/chat (AI assistant)                     │
+│                                                      │
+│  Verification Pipeline:                              │
+│    listing → docs → title_search → site_audit → ✅   │
+│                                                      │
+│  Trust: REDAN / NIESV certified agents               │
+│  Location: Abuja, FCT, Nigeria                       │
+└──────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- Node.js (v18 or higher)
-- MongoDB (running locally or a MongoDB Atlas URI)
-
-### Backend Setup
-
-1. Navigate to the backend directory
-   ```bash
-   cd backend
-   ```
-2. Install dependencies
-   ```bash
-   npm install
-   ```
-3. Environment Configuration
-   Create a `.env` file in the backend directory with the following keys:
-   ```env
-   PORT=5000
-   MONGO_URI=mongodb://localhost:27017/verifind
-   JWT_SECRET=your_super_secret_jwt_key
-   ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-   NODE_ENV=development
-   
-   # Optional: Paystack and Resend keys
-   # RESEND_API_KEY=
-   # EMAIL_FROM=
-   # PAYSTACK_SECRET_KEY=
-   ```
-4. Start the backend server
-   ```bash
-   npm run dev
-   ```
-
-### Frontend Setup
-
-1. Navigate to the frontend directory
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies
-   ```bash
-   npm install
-   ```
-3. Start the development server
-   ```bash
-   npm run dev
-   ```
-4. The client will be available at `http://localhost:3000`.
-
-## Scripts
+- Node.js v18+
+- MongoDB (local or Atlas URI)
 
 ### Backend
-- `npm run dev` - Starts the backend server with nodemon for hot-reloading
-- `npm start` - Starts the backend server in production mode
+```bash
+cd backend
+npm install
+# Create .env file (see below)
+npm run dev
+```
+
+**`.env` configuration:**
+```env
+PORT=5000
+MONGO_URI=mongodb://localhost:27017/verifind
+JWT_SECRET=your_super_secret_jwt_key
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+NODE_ENV=development
+
+# Optional
+# RESEND_API_KEY=
+# EMAIL_FROM=
+# PAYSTACK_SECRET_KEY=
+```
 
 ### Frontend
-- `npm run dev` - Starts the Vite development server
-- `npm run build` - Builds the application for production
-- `npm run preview` - Locally preview the production build
+```bash
+cd frontend
+npm install
+npm run dev
+# → http://localhost:3000
+```
+
+---
+
+## 📜 Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` (backend) | Starts Express with nodemon |
+| `npm start` (backend) | Production server |
+| `npm run dev` (frontend) | Vite dev server |
+| `npm run build` (frontend) | Production build |
+| `npm run preview` (frontend) | Preview production build |
+
+---
+
+## 📄 Legal
+
+**Verifind Ltd** — Registered under CAMA 2020 with the Corporate Affairs Commission (CAC), Nigeria. RC Number pending.
+
+© 2026 Verifind Technologies Ltd. Abuja, FCT, Nigeria.

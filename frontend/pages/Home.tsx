@@ -4,9 +4,94 @@ import {
   Search, MapPin, ShieldCheck, Building2, Star, ChevronRight,
   TrendingUp, Bed, Wallet, CheckCircle2, ArrowUpRight, Zap,
   X, Home as HomeIcon, BarChart2, DollarSign, UserCheck, CreditCard, HelpCircle,
-  BookOpen, HeartHandshake, Eye, Layers, Globe, FileText, Lock, ChevronDown
+  BookOpen, HeartHandshake, Eye, Layers, Globe, FileText, Lock, ChevronDown, Menu
 } from "lucide-react";
 import { Logo } from "../components/Logo";
+
+// ─── Responsive CSS ──────────────────────────────────────────────────────────
+const RESPONSIVE_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:wght@400;700&display=swap');
+@keyframes vf-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+.vf-nav-links { display: flex; gap: 4px; }
+.vf-nav-right { display: flex; gap: 8px; align-items: center; }
+.vf-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; color: inherit; }
+.vf-mobile-menu { display: none; }
+
+.vf-hero-stats { display: flex; gap: 32px; margin-top: 36px; flex-wrap: wrap; }
+.vf-rtb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.vf-district-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding-bottom: 16px; }
+.vf-district-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.vf-tier-badges { display: flex; gap: 8px; }
+.vf-verify-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 40px; align-items: start; }
+.vf-trust-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.vf-footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; margin-bottom: 48px; }
+.vf-footer-bottom { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.vf-hero-content { padding: 120px 24px 64px; }
+.vf-hero-title { font-size: clamp(38px, 5vw, 60px); }
+.vf-mode-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+
+/* ── Tablet (≤ 1024px) ─────────────────────────────── */
+@media (max-width: 1024px) {
+  .vf-district-grid { grid-template-columns: repeat(3, 1fr); }
+  .vf-verify-grid { grid-template-columns: 1fr; }
+  .vf-footer-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Mobile (≤ 768px) ──────────────────────────────── */
+@media (max-width: 768px) {
+  .vf-nav-links { display: none !important; }
+  .vf-nav-right .vf-sign-in { display: none; }
+  .vf-nav-right .vf-list-btn { display: none; }
+  .vf-hamburger { display: flex !important; align-items: center; justify-content: center; }
+  
+  .vf-mobile-menu {
+    position: fixed; top: 70px; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.98); backdrop-filter: blur(12px);
+    z-index: 999; padding: 24px;
+    display: flex; flex-direction: column; gap: 8px;
+    animation: vf-slideDown 0.2s ease-out;
+  }
+  .vf-mobile-menu a {
+    display: block; padding: 14px 16px; border-radius: 12px; font-size: 16px;
+    font-weight: 600; color: #111116; text-decoration: none; background: #F8FAFF;
+    border: 1px solid #E5E7EB;
+  }
+  .vf-mobile-menu a:active { background: #EEF2FF; }
+  
+  @keyframes vf-slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .vf-hero-content { padding: 100px 16px 40px; }
+  .vf-hero-title { font-size: 32px !important; }
+  .vf-hero-subtitle { font-size: 15px !important; margin-bottom: 24px !important; }
+  .vf-hero-stats { gap: 16px; margin-top: 24px; }
+  .vf-hero-stats > div { min-width: 40%; }
+  
+  .vf-rtb-grid { grid-template-columns: 1fr; gap: 16px; }
+  .vf-district-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .vf-district-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .vf-district-header h2 { font-size: 24px !important; }
+  .vf-tier-badges { flex-wrap: wrap; }
+  
+  .vf-verify-grid { grid-template-columns: 1fr; gap: 24px; }
+  .vf-verify-title { font-size: 24px !important; }
+  
+  .vf-trust-grid { grid-template-columns: 1fr; gap: 16px; }
+  .vf-trust-heading { font-size: 26px !important; }
+  
+  .vf-footer-grid { grid-template-columns: 1fr; gap: 24px; }
+  .vf-footer-bottom { flex-direction: column; text-align: center; }
+}
+
+/* ── Small Phone (≤ 480px) ─────────────────────────── */
+@media (max-width: 480px) {
+  .vf-hero-content { padding: 90px 14px 32px; }
+  .vf-hero-title { font-size: 28px !important; }
+  .vf-district-grid { grid-template-columns: 1fr; }
+  .vf-mode-tabs { gap: 6px; }
+  .vf-mode-tabs button { padding: 7px 14px !important; font-size: 13px !important; }
+}
+`;
 
 // ─── Simulated Verifind Backend ───────────────────────────────────────────────
 const API = {
@@ -26,7 +111,7 @@ const API = {
   trackEvent: (e: any) => console.log("[Verifind]", e),
 };
 
-// ─── Districts (from DistrictGrid.tsx) ───────────────────────────────────────
+// ─── Districts ────────────────────────────────────────────────────────────────
 const DISTRICTS = [
   { name: "Maitama",    desc: "Elite Diplomatic District",   avgRent: "₦4.5M/yr", avgBuy: "₦180M+", listings: 24, tier: "Elite",  image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80" },
   { name: "Asokoro",    desc: "VIP Security Residential",    avgRent: "₦3.8M/yr", avgBuy: "₦150M+", listings: 18, tier: "Elite",  image: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80" },
@@ -82,18 +167,19 @@ const QUICK = [
   { label: "Furnished", icon: <TrendingUp size={11} /> },
 ];
 
+// ─── AnimatedSearch ───────────────────────────────────────────────────────────
 function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: (val: string) => void }) {
   const suggestions = SUGGESTIONS[mode] ?? SUGGESTIONS.rent;
-  const [displayed, setDisplayed]       = useState("");
-  const [sugIdx, setSugIdx]             = useState(0);
-  const [phase, setPhase]               = useState("typing");
-  const [charIdx, setCharIdx]           = useState(0);
-  const [focused, setFocused]           = useState(false);
-  const [value, setValue]               = useState("");
-  const [showDrop, setShowDrop]         = useState(false);
-  const [autoResults, setAutoResults]   = useState<any[]>([]);
+  const [displayed, setDisplayed] = useState("");
+  const [sugIdx, setSugIdx] = useState(0);
+  const [phase, setPhase] = useState("typing");
+  const [charIdx, setCharIdx] = useState(0);
+  const [focused, setFocused] = useState(false);
+  const [value, setValue] = useState("");
+  const [showDrop, setShowDrop] = useState(false);
+  const [autoResults, setAutoResults] = useState<any[]>([]);
   const timerRef = useRef<any>(null);
-  const debRef   = useRef<any>(null);
+  const debRef = useRef<any>(null);
 
   const tick = useCallback(() => {
     const target = suggestions[sugIdx];
@@ -122,10 +208,7 @@ function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: 
   }, [phase, charIdx, sugIdx, suggestions]);
 
   useEffect(() => {
-    setSugIdx(0);
-    setCharIdx(0);
-    setPhase("typing");
-    setDisplayed("");
+    setSugIdx(0); setCharIdx(0); setPhase("typing"); setDisplayed("");
   }, [suggestions]);
 
   useEffect(() => {
@@ -147,16 +230,13 @@ function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: 
   const handleSubmit = (e: any) => {
     e.preventDefault();
     if (!value.trim()) return;
-    API.trackEvent({ event: "search_submit", query: value, mode });
     onSearch(value);
     setShowDrop(false);
   };
 
   return (
     <div style={{ position: "relative", width: "100%", maxWidth: 640 }}>
-      {/* ... keeping the rest of AnimatedSearch structure mostly identical ... */}
-      <form
-        onSubmit={handleSubmit}
+      <form onSubmit={handleSubmit}
         style={{
           display: "flex", alignItems: "center", gap: 10,
           background: "rgba(255,255,255,0.97)", borderRadius: 16, padding: "8px 8px 8px 16px",
@@ -165,7 +245,9 @@ function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: 
         }}>
         <Search size={16} color={focused ? "#1B4FD8" : "#9CA3AF"} style={{ flexShrink: 0 }} />
         <div style={{ position: "relative", flex: 1, height: 22 }}>
-          <input type="text" value={value} onChange={handleChange} onFocus={() => { setFocused(true); setShowDrop(true); }} onBlur={() => setTimeout(() => { setFocused(false); setShowDrop(false); }, 150)}
+          <input type="text" value={value} onChange={handleChange}
+            onFocus={() => { setFocused(true); setShowDrop(true); }}
+            onBlur={() => setTimeout(() => { setFocused(false); setShowDrop(false); }, 150)}
             style={{ position: "absolute", inset: 0, width: "100%", background: "transparent", border: "none", outline: "none", fontSize: 15, color: "#111116", fontFamily: "'DM Sans', sans-serif" }} />
           {!value && (
             <div aria-hidden style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", pointerEvents: "none", color: "#9CA3AF", fontSize: 15, fontFamily: "'DM Sans', sans-serif" }}>
@@ -174,70 +256,89 @@ function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: 
             </div>
           )}
         </div>
-        <button type="submit" disabled={!value} style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: value ? "#1B4FD8" : "#E5E7EB", color: value ? "#fff" : "#9CA3AF", cursor: value ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s" }}>
-          <Search size={13} /> Continue
+        <button type="submit" disabled={!value}
+          style={{ padding: "10px 18px", borderRadius: 10, border: "none", background: value ? "#1B4FD8" : "#E5E7EB", color: value ? "#fff" : "#9CA3AF", cursor: value ? "pointer" : "not-allowed", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 13, display: "flex", alignItems: "center", gap: 6, transition: "all 0.15s", whiteSpace: "nowrap" }}>
+          <Search size={13} /> Search
         </button>
       </form>
-      <style>{`@keyframes vf-blink { 0%,100%{opacity:1} 50%{opacity:0} }`}</style>
     </div>
   );
 }
 
+// ─── TopNav ───────────────────────────────────────────────────────────────────
 function TopNav({ scrolled }: { scrolled: boolean }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const bg = scrolled ? "rgba(255,255,255,0.97)" : "transparent";
   const textColor = scrolled ? "#111116" : "#fff";
 
   return (
-    <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: 70, background: bg, backdropFilter: scrolled ? "blur(12px)" : "none", borderBottom: scrolled ? "1px solid #E5E7EB" : "none", transition: "all 0.25s", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-          <Logo size={32} showText={true} light={!scrolled} />
-        </Link>
-        <nav style={{ display: "flex", gap: 4 }}>
-          {[{l: "Rent", h: "/rent"}, {l: "Buy", h: "/buy"}, {l: "Sell", h: "/sell"}, {l: "Verify", h: "/verify"}].map(({l, h}) => (
-            <Link key={l} to={h} style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "6px 12px", borderRadius: 8, fontWeight: 500, opacity: 0.9, transition: "opacity 0.15s" }}>{l}</Link>
-          ))}
-        </nav>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Link to="/login" style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "8px 14px", fontWeight: 500 }}>Sign in</Link>
-          <Link to="/sell" style={{ fontSize: 13, fontWeight: 700, padding: "9px 18px", background: scrolled ? "#1B4FD8" : "rgba(255,255,255,0.18)", color: "#fff", border: scrolled ? "none" : "1.5px solid rgba(255,255,255,0.5)", borderRadius: 10, textDecoration: "none", backdropFilter: !scrolled ? "blur(4px)" : "none", transition: "all 0.15s" }}>List Property +</Link>
+    <>
+      <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: 70, background: bg, backdropFilter: scrolled ? "blur(12px)" : "none", borderBottom: scrolled ? "1px solid #E5E7EB" : "none", transition: "all 0.25s", fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+            <Logo size={32} showText={true} light={!scrolled} />
+          </Link>
+          <nav className="vf-nav-links">
+            {[{l: "Rent", h: "/rent"}, {l: "Buy", h: "/buy"}, {l: "Sell", h: "/sell"}, {l: "Verify", h: "/verify"}].map(({l, h}) => (
+              <Link key={l} to={h} style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "6px 12px", borderRadius: 8, fontWeight: 500, opacity: 0.9, transition: "opacity 0.15s" }}>{l}</Link>
+            ))}
+          </nav>
+          <div className="vf-nav-right">
+            <Link to="/login" className="vf-sign-in" style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "8px 14px", fontWeight: 500 }}>Sign in</Link>
+            <Link to="/sell" className="vf-list-btn" style={{ fontSize: 13, fontWeight: 700, padding: "9px 18px", background: scrolled ? "#1B4FD8" : "rgba(255,255,255,0.18)", color: "#fff", border: scrolled ? "none" : "1.5px solid rgba(255,255,255,0.5)", borderRadius: 10, textDecoration: "none", backdropFilter: !scrolled ? "blur(4px)" : "none", transition: "all 0.15s" }}>List Property +</Link>
+            <button className="vf-hamburger" onClick={() => setMenuOpen(!menuOpen)} style={{ color: textColor }}>
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      {menuOpen && (
+        <div className="vf-mobile-menu" style={{ display: "flex" }}>
+          <Link to="/dashboard" onClick={() => setMenuOpen(false)}>🏠 Browse Listings</Link>
+          <Link to="/rent" onClick={() => setMenuOpen(false)}>🔑 Rent</Link>
+          <Link to="/buy" onClick={() => setMenuOpen(false)}>🏡 Buy</Link>
+          <Link to="/sell" onClick={() => setMenuOpen(false)}>📋 Sell / List Property</Link>
+          <Link to="/verify" onClick={() => setMenuOpen(false)}>✅ Verify</Link>
+          <Link to="/login" onClick={() => setMenuOpen(false)}>👤 Sign In</Link>
+          <Link to="/register" onClick={() => setMenuOpen(false)}>🚀 Create Account</Link>
+        </div>
+      )}
+    </>
   );
 }
 
+// ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero({ onSearch }: { onSearch: (val: string) => void }) {
   const [mode, setMode] = useState("rent");
   const stats = API.getStats();
   const nav = useNavigate();
 
   return (
-    <div style={{ 
-      position: "relative", 
-      minHeight: 520, 
-      overflow: "hidden",
-      backgroundImage: "url('/abuja_hero.png')",
-      backgroundSize: "cover",
-      backgroundPosition: "center"
-    }}>
+    <div style={{ position: "relative", minHeight: 520, overflow: "hidden", backgroundImage: "url('/abuja_hero.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.7) 40%, rgba(10,22,40,0.2) 100%)" }} />
-      <div style={{ position: "relative", zIndex: 10, maxWidth: 1280, margin: "0 auto", padding: "120px 24px 64px" }}>
+      <div className="vf-hero-content" style={{ position: "relative", zIndex: 10, maxWidth: 1280, margin: "0 auto" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 14px", borderRadius: 99, background: "rgba(5,150,105,0.2)", border: "1px solid rgba(5,150,105,0.4)", marginBottom: 20 }}>
           <ShieldCheck size={13} color="#10B981" />
           <span style={{ fontSize: 12, color: "#10B981", fontWeight: 700, fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.05em" }}>{stats.verifiedListings} Abuja True Verified™ listings</span>
         </div>
-        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: "clamp(38px, 5vw, 60px)", fontWeight: 400, color: "#fff", margin: "0 0 16px", lineHeight: 1.1, letterSpacing: "-0.03em", maxWidth: 580 }}>Rent. Buy. Verify.<br /><span style={{ color: "#60A5FA" }}>Abuja FCT.</span></h1>
-        <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, margin: "0 0 36px", fontFamily: "'DM Sans', sans-serif", maxWidth: 480, lineHeight: 1.6 }}>Nigeria's first fully verified real estate marketplace. Every listing passes a 4-stage AGIS verification.</p>
-        <div style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+        <h1 className="vf-hero-title" style={{ fontFamily: "'Fraunces', serif", fontWeight: 400, color: "#fff", margin: "0 0 16px", lineHeight: 1.1, letterSpacing: "-0.03em", maxWidth: 580 }}>
+          Rent. Buy. Verify.<br /><span style={{ color: "#60A5FA" }}>Abuja FCT.</span>
+        </h1>
+        <p className="vf-hero-subtitle" style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, margin: "0 0 36px", fontFamily: "'DM Sans', sans-serif", maxWidth: 480, lineHeight: 1.6 }}>
+          Nigeria's first fully verified real estate marketplace. Every listing passes a 4-stage AGIS verification.
+        </p>
+        <div className="vf-mode-tabs">
           {[{id:"rent", label:"Rent", href:"/rent"},{id:"buy", label:"Buy", href:"/buy"},{id:"sell", label:"Sell", href:"/sell"}].map(({id, label, href}) => (
-            <button key={id} onClick={() => nav(href)} style={{ padding: "8px 20px", borderRadius: 10, border: "none", background: mode === id ? "#fff" : "rgba(255,255,255,0.12)", color: mode === id ? "#1B4FD8" : "rgba(255,255,255,0.8)", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.15s", backdropFilter: "blur(4px)" }}>{label}</button>
+            <button key={id} onClick={() => setMode(id)} style={{ padding: "8px 20px", borderRadius: 10, border: "none", background: mode === id ? "#fff" : "rgba(255,255,255,0.12)", color: mode === id ? "#1B4FD8" : "rgba(255,255,255,0.8)", fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 14, cursor: "pointer", transition: "all 0.15s", backdropFilter: "blur(4px)" }}>{label}</button>
           ))}
         </div>
         <AnimatedSearch mode={mode} onSearch={onSearch} />
-        <div style={{ display: "flex", gap: 32, marginTop: 36 }}>
+        <div className="vf-hero-stats">
           {[[`${stats.totalListings}+`, "Active Listings"],[`${stats.verifiedListings}`, "Verified Properties"],[`${stats.totalAgents}`, "Certified Agents"],[`${stats.totalDistricts}`, "FCT Districts"]].map(([val, label]) => (
-            <div key={label}><div style={{ fontSize: 22, fontWeight: 800, color: "#fff", fontFamily: "'Fraunces', serif" }}>{val}</div><div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div></div>
+            <div key={label}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#fff", fontFamily: "'Fraunces', serif" }}>{val}</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)", fontFamily: "'DM Sans', sans-serif", marginTop: 2 }}>{label}</div>
+            </div>
           ))}
         </div>
       </div>
@@ -245,16 +346,16 @@ function Hero({ onSearch }: { onSearch: (val: string) => void }) {
   );
 }
 
-// ─── Component blocks mapped to user spec ─────────────────────────────────
+// ─── RTB Cards ────────────────────────────────────────────────────────────────
 function RTBSection() {
   const nav = useNavigate();
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 24px 0" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+      <div className="vf-rtb-grid">
         {RTB_CARDS.map(card => {
           const a = ACCENT_COLORS[card.accent as keyof typeof ACCENT_COLORS];
           return (
-            <div key={card.id} onClick={() => nav('/dashboard')} style={{ cursor:"pointer", background: a.bg, border: `1px solid ${a.border}`, borderRadius: 24, padding: 28, fontFamily: "'DM Sans', sans-serif" }}>
+            <div key={card.id} onClick={() => nav('/dashboard')} style={{ cursor: "pointer", background: a.bg, border: `1px solid ${a.border}`, borderRadius: 24, padding: 28, fontFamily: "'DM Sans', sans-serif" }}>
               <div style={{ width: 52, height: 52, borderRadius: 14, background: a.icon, display: "flex", alignItems: "center", justifyContent: "center", color: a.text, marginBottom: 20 }}>{card.icon}</div>
               <h3 style={{ fontSize: 20, fontWeight: 400, fontFamily: "'Fraunces', serif", color: "#111116", margin: "0 0 10px", letterSpacing: "-0.02em" }}>{card.title}</h3>
               <p style={{ fontSize: 14, color: "#535364", lineHeight: 1.65, margin: "0 0 24px" }}>{card.desc}</p>
@@ -267,33 +368,69 @@ function RTBSection() {
   );
 }
 
+// ─── District Grid ────────────────────────────────────────────────────────────
 function DistrictGrid({ mode = "rent" }: { mode?: string }) {
   const [selected, setSelected] = useState<any>(null);
   const nav = useNavigate();
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20 }}>
-        <div><h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 6px", letterSpacing: "-0.02em" }}>{mode === "buy" ? "Buy in Abuja" : mode === "sell" ? "Sell Your Property" : "Rent in Abuja"}</h2><p style={{ fontSize: 14, color: "#535364", margin: 0 }}>{DISTRICTS.length} districts · {DISTRICTS.reduce((a,d) => a + d.listings, 0)} verified listings</p></div>
-        <div style={{ display: "flex", gap: 8 }}>{["Elite","Mid","Value"].map(tier => { const s = TIER_STYLES[tier]; return <div key={tier} style={{ padding: "4px 12px", borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, color: s.text, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{tier}</div>; })}</div>
+      <div className="vf-district-header">
+        <div>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+            {mode === "buy" ? "Buy in Abuja" : mode === "sell" ? "Sell Your Property" : "Rent in Abuja"}
+          </h2>
+          <p style={{ fontSize: 14, color: "#535364", margin: 0 }}>{DISTRICTS.length} districts · {DISTRICTS.reduce((a,d) => a + d.listings, 0)} verified listings</p>
+        </div>
+        <div className="vf-tier-badges">
+          {["Elite","Mid","Value"].map(tier => { const s = TIER_STYLES[tier]; return <div key={tier} style={{ padding: "4px 12px", borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, color: s.text, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{tier}</div>; })}
+        </div>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, paddingBottom: 16 }}>
-        {DISTRICTS.map((d, i) => { const tier = TIER_STYLES[d.tier]; return (
-          <button key={d.name} onClick={() => setSelected(d)} style={{ position: "relative", height: 200, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", background: "#1a3a6b", outline: "none", transition: "transform 0.3s" }}>
+      <div className="vf-district-grid">
+        {DISTRICTS.map((d) => { const tier = TIER_STYLES[d.tier]; return (
+          <button key={d.name} onClick={() => setSelected(d)} style={{ position: "relative", height: 200, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", background: "#1a3a6b", outline: "none", transition: "transform 0.3s", width: "100%" }}>
             <img src={d.image} alt={d.name} loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)" }} />
             <div style={{ position: "absolute", top: 10, right: 10, padding: "3px 9px", borderRadius: 99, background: tier.bg, border: `1px solid ${tier.border}`, color: tier.text, fontSize: 9, fontWeight: 800, letterSpacing: "0.15em", textTransform: "uppercase", backdropFilter: "blur(4px)" }}>{d.tier}</div>
             <div style={{ position: "absolute", top: 10, left: 10, padding: "3px 9px", borderRadius: 99, background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: 10, fontWeight: 700, backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.15)" }}>{d.listings} listed</div>
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 14px", textAlign: "left" }}><div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}><MapPin size={9} color="rgba(255,255,255,0.6)" /><span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>Abuja, FCT</span></div><div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Fraunces', serif", letterSpacing: "-0.02em" }}>{d.name}</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 3 }}>{mode === "buy" ? <>From <span style={{ color: "#FCD34D", fontWeight: 700 }}>{d.avgBuy}</span></> : <>Avg <span style={{ color: "#6EE7B7", fontWeight: 700 }}>{d.avgRent}</span></>}</div></div>
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 14px", textAlign: "left" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                <MapPin size={9} color="rgba(255,255,255,0.6)" />
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>Abuja, FCT</span>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", fontFamily: "'Fraunces', serif", letterSpacing: "-0.02em" }}>{d.name}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 3 }}>
+                {mode === "buy" ? <>From <span style={{ color: "#FCD34D", fontWeight: 700 }}>{d.avgBuy}</span></> : <>Avg <span style={{ color: "#6EE7B7", fontWeight: 700 }}>{d.avgRent}</span></>}
+              </div>
+            </div>
           </button>
         );})}
       </div>
+
+      {/* District Detail Modal */}
       {selected && (
         <div onClick={() => setSelected(null)} style={{ position: "fixed", inset: 0, zIndex: 500, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 28, overflow: "hidden", maxWidth: 480, width: "100%", boxShadow: "0 32px 80px rgba(0,0,0,0.25)" }}>
-            <div style={{ height: 200, position: "relative" }}><img src={selected.image} alt={selected.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /><div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} /><button onClick={() => setSelected(null)} style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 99, padding: 6, cursor: "pointer", color: "#fff" }}><X size={16} /></button><div style={{ position: "absolute", bottom: 16, left: 20 }}><h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 400, color: "#fff", margin: "0 0 4px" }}>{selected.name}</h3><p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selected.desc}</p></div></div>
+            <div style={{ height: 200, position: "relative" }}>
+              <img src={selected.image} alt={selected.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
+              <button onClick={() => setSelected(null)} style={{ position: "absolute", top: 12, right: 12, background: "rgba(0,0,0,0.4)", border: "none", borderRadius: 99, padding: 6, cursor: "pointer", color: "#fff", display: "flex" }}><X size={16} /></button>
+              <div style={{ position: "absolute", bottom: 16, left: 20 }}>
+                <h3 style={{ fontFamily: "'Fraunces', serif", fontSize: 26, fontWeight: 400, color: "#fff", margin: "0 0 4px" }}>{selected.name}</h3>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.8)", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>{selected.desc}</p>
+              </div>
+            </div>
             <div style={{ padding: 24, fontFamily: "'DM Sans', sans-serif" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>{[["Avg Rent", selected.avgRent], ["Avg Buy", selected.avgBuy], ["Listings", selected.listings]].map(([l, v]) => (<div key={l as string} style={{ background: "#F8FAFF", borderRadius: 12, padding: "12px 14px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 700, color: "#111116", fontFamily: "'Fraunces', serif" }}>{v as React.ReactNode}</div><div style={{ fontSize: 11, color: "#535364", marginTop: 2 }}>{l as string}</div></div>))}</div>
-              <button style={{ width: "100%", padding: "14px", background: "#1B4FD8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }} onClick={() => nav('/dashboard')}>Browse {selected.listings} listings in {selected.name}</button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 20 }}>
+                {[["Avg Rent", selected.avgRent], ["Avg Buy", selected.avgBuy], ["Listings", selected.listings]].map(([l, v]) => (
+                  <div key={l as string} style={{ background: "#F8FAFF", borderRadius: 12, padding: "12px 14px", textAlign: "center" }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#111116", fontFamily: "'Fraunces', serif" }}>{v as React.ReactNode}</div>
+                    <div style={{ fontSize: 11, color: "#535364", marginTop: 2 }}>{l as string}</div>
+                  </div>
+                ))}
+              </div>
+              <button style={{ width: "100%", padding: "14px", background: "#1B4FD8", color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }} onClick={() => nav('/dashboard')}>
+                Browse {selected.listings} listings in {selected.name}
+              </button>
             </div>
           </div>
         </div>
@@ -302,47 +439,123 @@ function DistrictGrid({ mode = "rent" }: { mode?: string }) {
   );
 }
 
+// ─── Verification Pipeline ────────────────────────────────────────────────────
 function VerificationPipeline() {
   const [activeStep, setActiveStep] = useState(0);
   const steps = VERIFICATION_STEPS;
   return (
     <div style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 40, alignItems: "start" }}>
+      <div className="vf-verify-grid">
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 99, background: "rgba(27,79,216,0.06)", border: "1px solid rgba(27,79,216,0.14)", marginBottom: 16 }}><ShieldCheck size={12} color="#1B4FD8" /><span style={{ fontSize: 11, fontWeight: 700, color: "#1B4FD8", letterSpacing: "0.08em", textTransform: "uppercase" }}>Abuja True Verified™</span></div>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 14px", letterSpacing: "-0.02em", lineHeight: 1.2 }}>4-stage verification.<br />Zero paper fraud.</h2>
-          <p style={{ fontSize: 15, color: "#535364", lineHeight: 1.7, margin: "0 0 28px" }}>Every Verifind listing undergoes AGIS title verification, a physical site audit by certified inspectors, and agent KYC before it's ever shown to tenants.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{steps.map((step, i) => (<button key={step.label} onClick={() => setActiveStep(i)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 14, border: activeStep === i ? "1.5px solid #1B4FD8" : "1px solid #E5E7EB", background: activeStep === i ? "#F0F4FF" : "#fff", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}><div style={{ width: 36, height: 36, borderRadius: 10, background: i < activeStep ? "#059669" : activeStep === i ? "#1B4FD8" : "#F3F4F6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{i < activeStep ? <CheckCircle2 size={18} /> : step.icon}</div><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: activeStep === i ? "#1B4FD8" : "#111116" }}>{step.label}</div>{step.cost > 0 && <div style={{ fontSize: 12, color: "#535364", marginTop: 1 }}>Audit fee: ₦{step.cost.toLocaleString()}</div>}</div>{i < activeStep && <CheckCircle2 size={16} color="#059669" />}{activeStep === i && <div style={{ width: 8, height: 8, borderRadius: 99, background: "#1B4FD8" }} />}</button>))}</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 99, background: "rgba(27,79,216,0.06)", border: "1px solid rgba(27,79,216,0.14)", marginBottom: 16 }}>
+            <ShieldCheck size={12} color="#1B4FD8" />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#1B4FD8", letterSpacing: "0.08em", textTransform: "uppercase" }}>Abuja True Verified™</span>
+          </div>
+          <h2 className="vf-verify-title" style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 14px", letterSpacing: "-0.02em", lineHeight: 1.2 }}>
+            4-stage verification.<br />Zero paper fraud.
+          </h2>
+          <p style={{ fontSize: 15, color: "#535364", lineHeight: 1.7, margin: "0 0 28px" }}>
+            Every Verifind listing undergoes AGIS title verification, a physical site audit by certified inspectors, and agent KYC before it's ever shown to tenants.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {steps.map((step, i) => (
+              <button key={step.label} onClick={() => setActiveStep(i)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 14, border: activeStep === i ? "1.5px solid #1B4FD8" : "1px solid #E5E7EB", background: activeStep === i ? "#F0F4FF" : "#fff", cursor: "pointer", textAlign: "left", transition: "all 0.15s" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: i < activeStep ? "#059669" : activeStep === i ? "#1B4FD8" : "#F3F4F6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {i < activeStep ? <CheckCircle2 size={18} /> : step.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: activeStep === i ? "#1B4FD8" : "#111116" }}>{step.label}</div>
+                  {step.cost > 0 && <div style={{ fontSize: 12, color: "#535364", marginTop: 1 }}>Audit fee: ₦{step.cost.toLocaleString()}</div>}
+                </div>
+                {i < activeStep && <CheckCircle2 size={16} color="#059669" />}
+                {activeStep === i && <div style={{ width: 8, height: 8, borderRadius: 99, background: "#1B4FD8" }} />}
+              </button>
+            ))}
+          </div>
         </div>
-        <div style={{ background: "linear-gradient(135deg, #0f1f4a 0%, #1a3a8a 100%)", borderRadius: 28, padding: 32, color: "#fff" }}>
-          {/* Internal graphics adapted safely */}
+        <div style={{ background: "linear-gradient(135deg, #0f1f4a 0%, #1a3a8a 100%)", borderRadius: 28, padding: 32, color: "#fff", minHeight: 300, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+          <ShieldCheck size={64} color="rgba(255,255,255,0.15)" />
+          <p style={{ textAlign: "center", marginTop: 16, fontSize: 14, color: "rgba(255,255,255,0.5)" }}>Verification Console Preview</p>
         </div>
       </div>
     </div>
   );
 }
 
+// ─── Trust Section ────────────────────────────────────────────────────────────
 function EscrowTrustSection() {
-  const pillars = [{ icon: <Lock size={22} />, title: "Escrow Protection", desc: "Tenant funds held securely. Released to agent only after inspection confirmed.", color: "#1B4FD8" }, { icon: <UserCheck size={22} />, title: "Agent KYC", desc: "Every agent on Verifind has passed NIESV licence verification.", color: "#7C3AED" }, { icon: <ShieldCheck size={22} />, title: "AGIS Title Check", desc: "We verify every land title against the Abuja GIS database.", color: "#059669" }];
+  const pillars = [
+    { icon: <Lock size={22} />, title: "Escrow Protection", desc: "Tenant funds held securely. Released to agent only after inspection confirmed.", color: "#1B4FD8" },
+    { icon: <UserCheck size={22} />, title: "Agent KYC", desc: "Every agent on Verifind has passed NIESV licence verification.", color: "#7C3AED" },
+    { icon: <ShieldCheck size={22} />, title: "AGIS Title Check", desc: "We verify every land title against the Abuja GIS database.", color: "#059669" }
+  ];
   return (
     <div style={{ background: "#F8FAFF", marginTop: 64, padding: "60px 0" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
-        {pillars.map(p => (<div key={p.title} style={{ background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", fontFamily: "'DM Sans', sans-serif" }}><div style={{ width: 52, height: 52, borderRadius: 14, background: `${p.color}12`, display: "flex", alignItems: "center", justifyContent: "center", color: p.color, marginBottom: 18 }}>{p.icon}</div><h3 style={{ fontSize: 18, fontWeight: 700, color: "#111116", margin: "0 0 10px", letterSpacing: "-0.01em" }}>{p.title}</h3><p style={{ fontSize: 14, color: "#535364", lineHeight: 1.65, margin: 0 }}>{p.desc}</p></div>))}
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}>
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <h2 className="vf-trust-heading" style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+            Why tenants trust Verifind
+          </h2>
+          <p style={{ fontSize: 15, color: "#535364", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Three layers of protection built into every transaction.</p>
+        </div>
+        <div className="vf-trust-grid">
+          {pillars.map(p => (
+            <div key={p.title} style={{ background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", fontFamily: "'DM Sans', sans-serif" }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: `${p.color}12`, display: "flex", alignItems: "center", justifyContent: "center", color: p.color, marginBottom: 18 }}>{p.icon}</div>
+              <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111116", margin: "0 0 10px", letterSpacing: "-0.01em" }}>{p.title}</h3>
+              <p style={{ fontSize: 14, color: "#535364", lineHeight: 1.65, margin: 0 }}>{p.desc}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
+// ─── Footer ───────────────────────────────────────────────────────────────────
 function SiteFooter() {
-  const cols = [{ title: "Explore", links: [{l:"Rent in Abuja",h:"/rent"}, {l:"Buy a Property",h:"/buy"}, {l:"Sell Your Home",h:"/sell"}, {l:"Verify Listing",h:"/verify"}] }, { title: "Company", links: [{l:"About Verifind",h:"/about"}, {l:"How It Works",h:"/how"}, {l:"Contact",h:"/contact"}, {l:"Help Center",h:"/help"}] }];
+  const cols = [
+    { title: "Explore", links: [{l:"Rent in Abuja",h:"/rent"}, {l:"Buy a Property",h:"/buy"}, {l:"Sell Your Home",h:"/sell"}, {l:"Verify Listing",h:"/verify"}] },
+    { title: "Company", links: [{l:"About Verifind",h:"/about"}, {l:"How It Works",h:"/how"}, {l:"Contact",h:"/contact"}, {l:"Help Center",h:"/help"}] }
+  ];
   return (
     <footer style={{ background: "#0a1628", color: "#fff", padding: "56px 0 32px", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}><div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 40, marginBottom: 48 }}><div><div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}><div style={{ width: 34, height: 34, borderRadius: 10, background: "#1B4FD8", display: "flex", alignItems: "center", justifyContent: "center" }}><ShieldCheck size={18} color="#fff" /></div><span style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em" }}>Verifind</span></div><p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, margin: "0 0 20px" }}>Nigeria's first fully verified real estate marketplace.</p></div>{cols.map(col => (<div key={col.title}><h4 style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", margin: "0 0 16px" }}>{col.title}</h4><ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>{col.links.map(link => (<li key={link.l}><Link to={link.h} style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>{link.l}</Link></li>))}</ul></div>))}</div><div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24 }}><p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0 }}>© 2026 Verifind Technologies Ltd. Abuja, FCT, Nigeria.</p></div></div>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}>
+        <div className="vf-footer-grid">
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: "#1B4FD8", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ShieldCheck size={18} color="#fff" />
+              </div>
+              <span style={{ fontFamily: "'Fraunces', serif", fontSize: 22, fontWeight: 400, letterSpacing: "-0.02em" }}>Verifind</span>
+            </div>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.7, margin: "0 0 20px" }}>Nigeria's first fully verified real estate marketplace.</p>
+          </div>
+          {cols.map(col => (
+            <div key={col.title}>
+              <h4 style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", margin: "0 0 16px" }}>{col.title}</h4>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+                {col.links.map(link => (
+                  <li key={link.l}><Link to={link.h} style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", textDecoration: "none" }}>{link.l}</Link></li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        <div className="vf-footer-bottom" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24 }}>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0 }}>© 2026 Verifind Technologies Ltd. Abuja, FCT, Nigeria.</p>
+          <div style={{ display: "flex", gap: 16 }}>
+            {["Privacy", "Terms", "Fair Housing"].map(l => (
+              <a key={l} href="#" style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", textDecoration: "none" }}>{l}</a>
+            ))}
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────────────────
+// ─── Main Export ──────────────────────────────────────────────────────────────
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
@@ -355,6 +568,7 @@ export default function Home() {
 
   return (
     <div style={{ background: "#fff", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
+      <style>{RESPONSIVE_CSS}</style>
       <TopNav scrolled={scrolled} />
       <Hero onSearch={(q) => navigate('/dashboard')} />
       <RTBSection />
