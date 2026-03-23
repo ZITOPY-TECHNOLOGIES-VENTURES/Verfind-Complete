@@ -9,6 +9,31 @@ import {
 import { Logo } from "../components/Logo";
 import "./Home.css";
 
+// ─── Mobile Detection Hook ───────────────────────────────────────────────────
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= breakpoint);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    setIsMobile(mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+function useIsTablet() {
+  const [isTablet, setIsTablet] = useState(window.innerWidth <= 1024);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const handler = (e: MediaQueryListEvent) => setIsTablet(e.matches);
+    mq.addEventListener('change', handler);
+    setIsTablet(mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isTablet;
+}
+
 // ─── Simulated Verifind Backend ───────────────────────────────────────────────
 const API = {
   searchAutocomplete: async (query: string) => {
@@ -184,39 +209,59 @@ function AnimatedSearch({ mode = "rent", onSearch }: { mode?: string, onSearch: 
 // ─── TopNav ───────────────────────────────────────────────────────────────────
 function TopNav({ scrolled }: { scrolled: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
   const bg = scrolled ? "rgba(255,255,255,0.97)" : "transparent";
   const textColor = scrolled ? "#111116" : "#fff";
 
   return (
     <>
       <header style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 1000, height: 70, background: bg, backdropFilter: scrolled ? "blur(12px)" : "none", borderBottom: scrolled ? "1px solid #E5E7EB" : "none", transition: "all 0.25s", fontFamily: "'DM Sans', sans-serif" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
-            <Logo size={32} showText={true} light={!scrolled} />
+        <div style={{ maxWidth: 1280, margin: "0 auto", height: "100%", padding: "0 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <Logo size={28} showText={true} light={!scrolled} />
           </Link>
-          <nav className="vf-nav-links">
-            {[{l: "Rent", h: "/rent"}, {l: "Buy", h: "/buy"}, {l: "Sell", h: "/sell"}, {l: "Verify", h: "/verify"}].map(({l, h}) => (
-              <Link key={l} to={h} style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "6px 12px", borderRadius: 8, fontWeight: 500, opacity: 0.9, transition: "opacity 0.15s" }}>{l}</Link>
-            ))}
-          </nav>
-          <div className="vf-nav-right">
-            <Link to="/login" className="vf-sign-in" style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "8px 14px", fontWeight: 500 }}>Sign in</Link>
-            <Link to="/sell" className="vf-list-btn" style={{ fontSize: 13, fontWeight: 700, padding: "9px 18px", background: scrolled ? "#1B4FD8" : "rgba(255,255,255,0.18)", color: "#fff", border: scrolled ? "none" : "1.5px solid rgba(255,255,255,0.5)", borderRadius: 10, textDecoration: "none", backdropFilter: !scrolled ? "blur(4px)" : "none", transition: "all 0.15s" }}>List Property +</Link>
-            <button className="vf-hamburger" onClick={() => setMenuOpen(!menuOpen)} style={{ color: textColor }}>
-              {menuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+
+          {/* Desktop nav */}
+          {!isMobile && (
+            <nav style={{ display: "flex", gap: 4 }}>
+              {[{l: "Rent", h: "/rent"}, {l: "Buy", h: "/buy"}, {l: "Sell", h: "/sell"}, {l: "Verify", h: "/verify"}].map(({l, h}) => (
+                <Link key={l} to={h} style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "6px 12px", borderRadius: 8, fontWeight: 500, opacity: 0.9 }}>{l}</Link>
+              ))}
+            </nav>
+          )}
+
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {!isMobile && (
+              <>
+                <Link to="/login" style={{ fontSize: 14, color: textColor, textDecoration: "none", padding: "8px 14px", fontWeight: 500 }}>Sign in</Link>
+                <Link to="/sell" style={{ fontSize: 13, fontWeight: 700, padding: "9px 18px", background: scrolled ? "#1B4FD8" : "rgba(255,255,255,0.18)", color: "#fff", border: scrolled ? "none" : "1.5px solid rgba(255,255,255,0.5)", borderRadius: 10, textDecoration: "none", whiteSpace: "nowrap" }}>List Property +</Link>
+              </>
+            )}
+            {isMobile && (
+              <button onClick={() => setMenuOpen(!menuOpen)} style={{ background: "none", border: "none", cursor: "pointer", padding: 8, color: textColor, display: "flex", alignItems: "center" }}>
+                {menuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            )}
           </div>
         </div>
       </header>
-      {menuOpen && (
-        <div className="vf-mobile-menu" style={{ display: "flex" }}>
-          <Link to="/dashboard" onClick={() => setMenuOpen(false)}>🏠 Browse Listings</Link>
-          <Link to="/rent" onClick={() => setMenuOpen(false)}>🔑 Rent</Link>
-          <Link to="/buy" onClick={() => setMenuOpen(false)}>🏡 Buy</Link>
-          <Link to="/sell" onClick={() => setMenuOpen(false)}>📋 Sell / List Property</Link>
-          <Link to="/verify" onClick={() => setMenuOpen(false)}>✅ Verify</Link>
-          <Link to="/login" onClick={() => setMenuOpen(false)}>👤 Sign In</Link>
-          <Link to="/register" onClick={() => setMenuOpen(false)}>🚀 Create Account</Link>
+
+      {/* Mobile slide-down menu */}
+      {isMobile && menuOpen && (
+        <div style={{ position: "fixed", top: 70, left: 0, right: 0, bottom: 0, background: "rgba(255,255,255,0.98)", backdropFilter: "blur(12px)", zIndex: 999, padding: 20, display: "flex", flexDirection: "column", gap: 8, overflowY: "auto" }}>
+          {[
+            { to: "/dashboard", label: "🏠 Browse Listings" },
+            { to: "/rent",      label: "🔑 Rent" },
+            { to: "/buy",       label: "🏡 Buy" },
+            { to: "/sell",      label: "📋 List Property" },
+            { to: "/login",     label: "👤 Sign In" },
+            { to: "/register",  label: "🚀 Create Account" },
+          ].map(({ to, label }) => (
+            <Link key={to} to={to} onClick={() => setMenuOpen(false)}
+              style={{ display: "block", padding: "14px 16px", borderRadius: 12, fontSize: 16, fontWeight: 600, color: "#111116", textDecoration: "none", background: "#F8FAFF", border: "1px solid #E5E7EB" }}>
+              {label}
+            </Link>
+          ))}
         </div>
       )}
     </>
@@ -265,9 +310,12 @@ function Hero({ onSearch }: { onSearch: (val: string) => void }) {
 // ─── RTB Cards ────────────────────────────────────────────────────────────────
 function RTBSection() {
   const nav = useNavigate();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const cols = isMobile ? "1fr" : isTablet ? "1fr 1fr" : "repeat(3, 1fr)";
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 24px 0" }}>
-      <div className="vf-rtb-grid">
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "32px 16px 0" : "56px 24px 0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: cols, gap: isMobile ? 16 : 20 }}>
         {RTB_CARDS.map(card => {
           const a = ACCENT_COLORS[card.accent as keyof typeof ACCENT_COLORS];
           return (
@@ -288,20 +336,23 @@ function RTBSection() {
 function DistrictGrid({ mode = "rent" }: { mode?: string }) {
   const [selected, setSelected] = useState<any>(null);
   const nav = useNavigate();
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const districtCols = isMobile ? "repeat(2, 1fr)" : isTablet ? "repeat(3, 1fr)" : "repeat(4, 1fr)";
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
-      <div className="vf-district-header">
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "40px 16px 0" : "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "flex-end", justifyContent: "space-between", marginBottom: 20, flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 0 }}>
         <div>
-          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: isMobile ? 24 : 32, fontWeight: 400, color: "#111116", margin: "0 0 6px", letterSpacing: "-0.02em" }}>
             {mode === "buy" ? "Buy in Abuja" : mode === "sell" ? "Sell Your Property" : "Rent in Abuja"}
           </h2>
           <p style={{ fontSize: 14, color: "#535364", margin: 0 }}>{DISTRICTS.length} districts · {DISTRICTS.reduce((a,d) => a + d.listings, 0)} verified listings</p>
         </div>
-        <div className="vf-tier-badges">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {["Elite","Mid","Value"].map(tier => { const s = TIER_STYLES[tier]; return <div key={tier} style={{ padding: "4px 12px", borderRadius: 99, background: s.bg, border: `1px solid ${s.border}`, color: s.text, fontSize: 11, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{tier}</div>; })}
         </div>
       </div>
-      <div className="vf-district-grid">
+      <div style={{ display: "grid", gridTemplateColumns: districtCols, gap: isMobile ? 12 : 16, paddingBottom: 16 }}>
         {DISTRICTS.map((d) => { const tier = TIER_STYLES[d.tier]; return (
           <button key={d.name} onClick={() => setSelected(d)} style={{ position: "relative", height: 200, borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.05)", cursor: "pointer", background: "#1a3a6b", outline: "none", transition: "transform 0.3s", width: "100%" }}>
             <img src={d.image} alt={d.name} loading="lazy" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -359,9 +410,10 @@ function DistrictGrid({ mode = "rent" }: { mode?: string }) {
 function VerificationPipeline() {
   const [activeStep, setActiveStep] = useState(0);
   const steps = VERIFICATION_STEPS;
+  const isMobile = useIsMobile();
   return (
-    <div style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
-      <div className="vf-verify-grid">
+    <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "40px 16px 0" : "60px 24px 0", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1.4fr", gap: isMobile ? 24 : 40, alignItems: "start" }}>
         <div>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 12px", borderRadius: 99, background: "rgba(27,79,216,0.06)", border: "1px solid rgba(27,79,216,0.14)", marginBottom: 16 }}>
             <ShieldCheck size={12} color="#1B4FD8" />
@@ -405,16 +457,19 @@ function EscrowTrustSection() {
     { icon: <UserCheck size={22} />, title: "Agent KYC", desc: "Every agent on Verifind has passed NIESV licence verification.", color: "#7C3AED" },
     { icon: <ShieldCheck size={22} />, title: "AGIS Title Check", desc: "We verify every land title against the Abuja GIS database.", color: "#059669" }
   ];
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  const trustCols = isMobile ? "1fr" : isTablet ? "1fr 1fr" : "repeat(3, 1fr)";
   return (
-    <div style={{ background: "#F8FAFF", marginTop: 64, padding: "60px 0" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}>
+    <div style={{ background: "#F8FAFF", marginTop: 64, padding: isMobile ? "40px 0" : "60px 0" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px" }}>
         <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <h2 className="vf-trust-heading" style={{ fontFamily: "'Fraunces', serif", fontSize: 32, fontWeight: 400, color: "#111116", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
+          <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: isMobile ? 24 : 32, fontWeight: 400, color: "#111116", margin: "0 0 8px", letterSpacing: "-0.02em" }}>
             Why tenants trust Verifind
           </h2>
           <p style={{ fontSize: 15, color: "#535364", margin: 0, fontFamily: "'DM Sans', sans-serif" }}>Three layers of protection built into every transaction.</p>
         </div>
-        <div className="vf-trust-grid">
+        <div style={{ display: "grid", gridTemplateColumns: trustCols, gap: isMobile ? 16 : 24 }}>
           {pillars.map(p => (
             <div key={p.title} style={{ background: "#fff", borderRadius: 20, padding: 28, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", fontFamily: "'DM Sans', sans-serif" }}>
               <div style={{ width: 52, height: 52, borderRadius: 14, background: `${p.color}12`, display: "flex", alignItems: "center", justifyContent: "center", color: p.color, marginBottom: 18 }}>{p.icon}</div>
@@ -434,10 +489,12 @@ function SiteFooter() {
     { title: "Explore", links: [{l:"Rent in Abuja",h:"/rent"}, {l:"Buy a Property",h:"/buy"}, {l:"Sell Your Home",h:"/sell"}, {l:"Verify Listing",h:"/verify"}] },
     { title: "Company", links: [{l:"About Verifind",h:"/about"}, {l:"How It Works",h:"/how"}, {l:"Contact",h:"/contact"}, {l:"Help Center",h:"/help"}] }
   ];
+  const isMobile = useIsMobile();
+  const footerCols = isMobile ? "1fr" : "2fr 1fr 1fr";
   return (
-    <footer style={{ background: "#0a1628", color: "#fff", padding: "56px 0 32px", fontFamily: "'DM Sans', sans-serif" }}>
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "0 24px" }}>
-        <div className="vf-footer-grid">
+    <footer style={{ background: "#0a1628", color: "#fff", padding: isMobile ? "40px 0 24px" : "56px 0 32px", fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: footerCols, gap: isMobile ? 24 : 40, marginBottom: 48 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: "#1B4FD8", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -458,7 +515,7 @@ function SiteFooter() {
             </div>
           ))}
         </div>
-        <div className="vf-footer-bottom" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24 }}>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 24, display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", gap: 12 }}>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", margin: 0 }}>© 2026 Verifind Technologies Ltd. Abuja, FCT, Nigeria.</p>
           <div style={{ display: "flex", gap: 16 }}>
             {["Privacy", "Terms", "Fair Housing"].map(l => (
@@ -483,7 +540,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="vf-home" style={{ background: "#fff", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ background: "#fff", minHeight: "100vh", fontFamily: "'DM Sans', sans-serif", overflowX: "hidden", maxWidth: "100vw" }}>
       <TopNav scrolled={scrolled} />
       <Hero onSearch={(q) => navigate('/dashboard')} />
       <RTBSection />
