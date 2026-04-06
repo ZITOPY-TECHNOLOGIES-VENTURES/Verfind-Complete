@@ -17,8 +17,8 @@ const sendOtpEmail = async (to, name, otp) => {
   const FROM       = process.env.EMAIL_FROM || 'noreply@verifind.ng';
 
   if (!RESEND_KEY) {
-    console.log(`\n📧 [DEV] OTP for ${to}: ${otp}\n`);
-    return true;
+    console.error('❌ RESEND_API_KEY is missing. Code delivery failed.');
+    return false;
   }
 
   try {
@@ -61,7 +61,7 @@ const sendPaymentEmail = async (to, subject, message) => {
   const RESEND_KEY = process.env.RESEND_API_KEY;
   const FROM       = process.env.EMAIL_FROM || 'noreply@verifind.ng';
   if (!RESEND_KEY) {
-    console.log(`\n📧 [DEV EMAIL] To: ${to} | Subject: ${subject}\n   ${message}\n`);
+    console.error('❌ RESEND_API_KEY is missing. Email delivery failed.');
     return;
   }
   try {
@@ -477,13 +477,6 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Email and password required' });
 
     // ─── ADMIN BYPASS (Easy to remove) ──────────────────────────────────────────
-    if (email.toLowerCase().trim() === 'admin@zimarealestate.com' && password === 'hashed_password') {
-      const token = jwt.sign({ id: 'admin_root', role: 'admin' }, JWT_SECRET, { expiresIn: '7d' });
-      return res.json({
-        token,
-        user: { _id: 'admin_root', username: 'Zima Admin', email: 'admin@zimarealestate.com', role: 'admin', isEmailVerified: true, isKycVerified: true }
-      });
-    }
 
     const user = await User.findOne({ email: String(email).toLowerCase().trim() });
 
@@ -556,7 +549,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     // Don't reveal if user exists for security, but we'll simulate for demo
     const otp = generateOTP();
     otpStore.set(email, { otp, expires: Date.now() + 600000, purpose: 'reset' });
-    console.log(`[OTP] Password Reset for ${email}: ${otp}`);
+    // console.log(`[OTP] Password Reset for ${email}: ${otp}`);
     res.json({ message: 'If an account exists, a reset code was sent' });
   } catch (err) { serverError(res, err); }
 });
