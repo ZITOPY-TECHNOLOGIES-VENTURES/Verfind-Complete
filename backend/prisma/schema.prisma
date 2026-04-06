@@ -1,0 +1,161 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  tenant
+  agent
+  admin
+}
+
+enum PropertyType {
+  Apartment
+  House
+  Duplex
+  Bungalow
+}
+
+enum PropertyStatus {
+  available
+  under_offer
+  rented
+}
+
+enum VerificationStage {
+  listing_created
+  docs_uploaded
+  agent_vetted
+  inspection_scheduled
+  verified
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  escrow_hold
+  escrow_release
+}
+
+enum PaymentStatus {
+  pending
+  confirmed
+  releasing
+  released
+  failed
+  refunded
+}
+
+model User {
+  id              String   @id @default(uuid())
+  username        String
+  email           String   @unique
+  password        String
+  role            Role     @default(tenant)
+  isEmailVerified Boolean  @default(false)
+  isKycVerified   Boolean  @default(false)
+  phone           String?
+  agencyName      String?
+  nin             String?
+  whatsappNumber  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PendingReg {
+  id        String   @id @default(uuid())
+  username  String
+  email     String   @unique
+  password  String
+  role      Role     @default(tenant)
+  otp       String
+  otpExpiry DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Property {
+  id                  String            @id @default(uuid())
+  title               String
+  description         String?
+  district            String
+  address             String?
+  type                PropertyType      @default(Apartment)
+  lat                 Float?
+  lng                 Float?
+  baseRent            Float
+  serviceCharge       Float             @default(0)
+  cautionFee          Float             @default(0)
+  agencyFee           Float?
+  legalFee            Float?
+  totalInitialPayment Float?
+  images              String[]
+  videoUrl            String?
+  bedrooms            Int?
+  bathrooms           Int?
+  sqm                 Float?
+  furnished           Boolean           @default(false)
+  parking             Boolean           @default(false)
+  agentId             String
+  agentName           String?
+  isVerified          Boolean           @default(false)
+  verificationStage   VerificationStage @default(listing_created)
+  status              PropertyStatus    @default(available)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  userId      String
+  propertyId  String?
+  type        TransactionType
+  amount      Float
+  status      String          @default("completed")
+  description String?
+  reference   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  reference         String        @unique
+  propertyId        String
+  tenantId          String
+  agentId           String
+  amount            Float
+  amountKobo        Float
+  description       String?
+  status            PaymentStatus @default(pending)
+  inspectionDate    DateTime?
+  releaseDate       DateTime?
+  paystackData      Json?
+  transferReference String?
+  recipientCode     String?
+  propertyTitle     String?
+  agentName         String?
+  tenantEmail       String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model AgentBank {
+  id            String   @id @default(uuid())
+  agentId       String   @unique
+  bankCode      String
+  bankName      String
+  accountNumber String
+  accountName   String
+  recipientCode String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

@@ -2,31 +2,34 @@ const express   = require('express');
 const cors      = require('cors');
 const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
-const mongoose  = require('mongoose');
+const { PrismaClient } = require('@prisma/client');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const crypto    = require('crypto');
 require('dotenv').config();
+
+const prisma = new PrismaClient();
 
 // ─── OTP STORE (In-memory for demo) ───────────────────────────────────────────
 const otpStore = new Map();
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 const sendOtpEmail = async (to, name, otp) => {
-  const RESEND_KEY = process.env.RESEND_API_KEY;
-  const FROM       = process.env.EMAIL_FROM || 'noreply@verifind.ng';
+  const BREVO_KEY = process.env.BREVO_API_KEY;
+  const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@verifind.ng';
+  const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
 
-  if (!RESEND_KEY) {
-    console.error('❌ RESEND_API_KEY is missing. Code delivery failed.');
+  if (!BREVO_KEY) {
+    console.error('❌ BREVO_API_KEY is missing. Code delivery failed.');
     return false;
   }
 
   try {
     const body = {
-      from:    FROM,
-      to:      [to],
-      subject: `${otp} is your Verifind verification code`,
-      html: `
+      sender:      { name: FROM_NAME, email: FROM_EMAIL },
+      to:          [{ email: to, name }],
+      subject:     `${otp} is your Verifind verification code`,
+      htmlContent: `
         <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#F5F2ED;border-radius:20px">
           <div style="text-align:center;margin-bottom:28px">
             <h1 style="font-size:20px;font-weight:700;color:#111827;margin:12px 0 4px">Verify your email</h1>
@@ -40,42 +43,45 @@ const sendOtpEmail = async (to, name, otp) => {
       `,
     };
 
-    const res = await fetch('https://api.resend.com/emails', {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method:  'POST',
-      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
       body:    JSON.stringify(body),
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      console.error('❌ Resend Error:', errData);
+      console.error('❌ Brevo Error:', errData);
     }
     return true;
   } catch (err) {
     console.error('❌ Email Error:', err.message);
-    return true; 
+    return true;
   }
 };
 
 const sendPaymentEmail = async (to, subject, message) => {
-  const RESEND_KEY = process.env.RESEND_API_KEY;
-  const FROM       = process.env.EMAIL_FROM || 'noreply@verifind.ng';
-  if (!RESEND_KEY) {
-    console.error('❌ RESEND_API_KEY is missing. Email delivery failed.');
+  const BREVO_KEY  = process.env.BREVO_API_KEY;
+  const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@verifind.ng';
+  const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
+  if (!BREVO_KEY) {
+    console.error('❌ BREVO_API_KEY is missing. Email delivery failed.');
     return;
   }
   try {
-    await fetch('https://api.resend.com/emails', {
+    await fetch('https://api.brevo.com/v3/smtp/email', {
       method:  'POST',
-      headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        from: FROM, to: [to], subject,
-        html: `<div style="font-family:sans-serif;padding:24px;background:#f9f9f9;border-radius:12px;color:#333">
+        sender:      { name: FROM_NAME, email: FROM_EMAIL },
+        to:          [{ email: to }],
+        subject,
+        htmlContent: `<div style="font-family:sans-serif;padding:24px;background:#f9f9f9;border-radius:12px;color:#333">
                 <h2 style="color:#1B4FD8">${subject}</h2>
                 <p style="font-size:16px;line-height:1.5">${message}</p>
                 <hr style="border:none;border-top:1px solid #eee;margin:20px 0" />
                 <p style="font-size:12px;color:#999">Verifind Escrow — Secure Real Estate Payments</p>
-               </div>`
+               </div>`,
       }),
     });
   } catch (err) { console.error('❌ Email Error:', err.message); }
@@ -99,35 +105,66 @@ const paystackRequest = async (method, path, body = null) => {
 
 const processScheduledReleases = async () => {
   try {
-    // Note: models must be defined before calling this
-    const Payment = mongoose.model('Payment');
-    const AgentBank = mongoose.model('AgentBank');
-    const Property = mongoose.model('Property');
-
-    const due = await Payment.find({ status: 'confirmed', releaseDate: { $lte: new Date() } }).limit(10);
+    const due = await prisma.payment.findMany({
+      where: { status: 'confirmed', releaseDate: { lte: new Date() } },
+      take: 10,
+    });
     for (const payment of due) {
       try {
         let recipientCode = payment.recipientCode;
         if (!recipientCode) {
-          const bank = await AgentBank.findOne({ agentId: payment.agentId });
-          if (!bank) continue;
-          recipientCode = bank.recipientCode;
+          const agentBank = await prisma.agentBank.findUnique({ where: { agentId: payment.agentId } });
+          if (!agentBank) continue;
+          recipientCode = agentBank.recipientCode;
         }
-        payment.status = 'releasing';
-        await payment.save();
-        const transfer = await paystackRequest('POST', '/transfer', {
-          source: 'balance', amount: payment.amountKobo, recipient: recipientCode,
-          reason: `Verifind release — ${payment.propertyTitle}`, reference: `VF-TRF-${payment.reference}`
+
+        // Attempt Paystack transfer
+        try {
+          const transferData = await paystackRequest('POST', '/transfer', {
+            source: 'balance',
+            amount: Math.round(payment.amount * 0.9 * 100),
+            recipient: recipientCode,
+            reason: `Rent payment: ${payment.propertyTitle}`,
+          });
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'releasing', transferReference: transferData.transfer_code },
+          });
+        } catch (transferErr) {
+          console.error(`Transfer failed for ${payment.reference}:`, transferErr.message);
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'released' },
+          });
+        }
+
+        await prisma.property.update({
+          where: { id: payment.propertyId },
+          data: { status: 'rented' },
         });
-        payment.status = 'released';
-        payment.transferReference = transfer.transfer_code;
-        await payment.save();
-        await Property.findByIdAndUpdate(payment.propertyId, { status: 'rented' });
-        console.log(`✅ Released ₦${payment.amount} for ${payment.propertyTitle}`);
-      } catch (e) { console.error(`❌ Release error [${payment._id}]:`, e.message); payment.status = 'confirmed'; await payment.save(); }
+
+        await prisma.transaction.create({
+          data: {
+            userId:      payment.agentId,
+            propertyId:  payment.propertyId,
+            type:        'escrow_release',
+            amount:      payment.amount * 0.9,
+            status:      'completed',
+            description: `Auto-released funds for ${payment.propertyTitle}`,
+            reference:   payment.reference,
+          },
+        });
+      } catch (err) {
+        console.error(`Scheduled release failed for ${payment.reference}:`, err.message);
+      }
     }
-  } catch (e) { console.error('Scheduled release task error:', e.message); }
+  } catch (err) {
+    console.error('Release scheduler error:', err.message);
+  }
 };
+
+// Run scheduled releases every 30 minutes
+setInterval(processScheduledReleases, 30 * 60 * 1000);
 
 // ─── STARTUP GUARD ────────────────────────────────────────────────────────────
 // FIX 1: Crash hard if JWT_SECRET is missing.
@@ -139,8 +176,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 const app        = express();
-const PORT       = process.env.PORT       || 5000;
-const MONGO_URI  = process.env.MONGO_URI  || 'mongodb://localhost:27017/verifind';
+const PORT       = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const ALLOWED_ORIGINS = (
@@ -176,25 +212,35 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
     const event = JSON.parse(req.body);
     if (event.event === 'charge.success') {
       const { reference, metadata } = event.data;
-      const payment = await Payment.findOne({ reference });
+      const payment = await prisma.payment.findUnique({ where: { reference } });
       if (payment && payment.status === 'pending') {
-        payment.status = 'confirmed';
-        payment.paystackData = event.data;
-        await payment.save();
-        if (metadata?.propertyId) await Property.findByIdAndUpdate(metadata.propertyId, { status: 'under-offer' });
+        await prisma.payment.update({
+          where: { reference },
+          data: { status: 'confirmed', paystackData: event.data }
+        });
+        await prisma.transaction.create({
+          data: {
+            userId: payment.tenantId,
+            propertyId: payment.propertyId,
+            type: 'escrow_hold',
+            amount: payment.amount,
+            status: 'completed',
+            description: `Rent payment for ${payment.propertyTitle} (Reference: ${reference})`,
+            reference,
+          }
+        });
+        if (metadata?.propertyId) await prisma.property.update({ where: { id: metadata.propertyId }, data: { status: 'under-offer' } });
         
-        // Notify tenant via email (User requested outside-app notification)
         await sendPaymentEmail(payment.tenantEmail, 'Payment Confirmed', 
           `Your payment for <b>${payment.propertyTitle}</b> has been confirmed. The agent will contact you shortly.`);
       }
     }
 
     if (event.event === 'transfer.success') {
-      const payment = await Payment.findOne({ transferReference: event.data.transfer_code });
+      const payment = await prisma.payment.findFirst({ where: { transferReference: event.data.transfer_code } });
       if (payment) {
-        payment.status = 'released';
-        await payment.save();
-        await Property.findByIdAndUpdate(payment.propertyId, { status: 'rented' });
+        await prisma.payment.update({ where: { id: payment.id }, data: { status: 'released' } });
+        await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'rented' } });
       }
     }
     res.sendStatus(200);
@@ -206,9 +252,8 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
 
 app.use(express.json({ limit: '2mb' }));
 
-// FIX 5: Rate-limit auth endpoints to block brute-force and credential stuffing.
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 10,
   message: { message: 'Too many attempts — please try again in 15 minutes' },
   standardHeaders: true,
@@ -235,12 +280,10 @@ const VERIFICATION_STAGES = [
   'listing_created','docs_uploaded','agent_vetted','inspection_scheduled','verified',
 ];
 
-// FIX 6: Whitelist of fields agents are allowed to set on a property.
-// This prevents mass-assignment attacks such as isVerified:true or
-// verificationStage:'verified' being injected via the request body.
 const PROPERTY_ALLOWED_FIELDS = [
   'title','description','district','address','type',
   'baseRent','serviceCharge','cautionFee','images','videoUrl',
+  'bedrooms','bathrooms','sqm','furnished','parking',
 ];
 
 const DISTRICT_COORDS = {
@@ -265,123 +308,23 @@ const DISTRICT_COORDS = {
 
 // ─── DATABASE ────────────────────────────────────────────────────────────────
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB error:', err.message));
-
-// ─── MODELS ──────────────────────────────────────────────────────────────────
-
-const UserSchema = new mongoose.Schema({
-  username:       { type: String, required: true, trim: true, maxlength: 60 },
-  email:          { type: String, required: true, unique: true, lowercase: true, maxlength: 254 },
-  password:       { type: String, required: true },
-  role:           { type: String, enum: ['tenant','agent','admin'], default: 'tenant' },
-  isEmailVerified: { type: Boolean, default: false },
-  isKycVerified:  { type: Boolean, default: false },
-  phone:          { type: String, maxlength: 20 },
-  agencyName:     { type: String, maxlength: 100 },
-  nin:            { type: String, maxlength: 20 },
-  whatsappNumber: { type: String, maxlength: 20 },
-}, { timestamps: true });
-
-const PendingRegSchema = new mongoose.Schema({
-  username:  { type: String, required: true },
-  email:     { type: String, required: true, unique: true, lowercase: true },
-  password:  { type: String, required: true },  // bcrypt hash stored here
-  role:      { type: String, enum: ['tenant', 'agent'], default: 'tenant' },
-  otp:       { type: String, required: true },
-  otpExpiry: { type: Date,   required: true },
-  attempts:  { type: Number, default: 0 },      // max 5 wrong tries
-}, { timestamps: true });
-
-// Auto-delete the whole document after 10 minutes regardless of status
-PendingRegSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 });
-
-const PendingReg = mongoose.model('PendingReg', PendingRegSchema);
-
-const PropertySchema = new mongoose.Schema({
-  title:               { type: String, required: true, maxlength: 200 },
-  description:         { type: String, maxlength: 2000 },
-  district:            { type: String, required: true, enum: VALID_DISTRICTS },
-  address:             { type: String, maxlength: 300 },
-  type:                { type: String, enum: VALID_TYPES, default: 'Apartment' },
-  lat:                 Number,
-  lng:                 Number,
-  baseRent:            { type: Number, required: true, min: 0 },
-  serviceCharge:       { type: Number, default: 0, min: 0 },
-  cautionFee:          { type: Number, default: 0, min: 0 },
-  agencyFee:           { type: Number, min: 0 },
-  legalFee:            { type: Number, min: 0 },
-  totalInitialPayment: { type: Number, min: 0 },
-  images:              [String],
-  videoUrl:            { type: String, maxlength: 500 },
-  agentId:             { type: String, required: true },
-  agentName:           String,
-  isVerified:          { type: Boolean, default: false },
-  verificationStage:   { type: String, enum: VERIFICATION_STAGES, default: 'listing_created' },
-  status:              { type: String, enum: VALID_STATUSES, default: 'available' },
-}, { timestamps: true });
-
-const TransactionSchema = new mongoose.Schema({
-  userId:      { type: String, required: true },
-  propertyId:  String,
-  type:        { type: String, enum: ['deposit','withdrawal','escrow_hold','escrow_release'], required: true },
-  amount:      { type: Number, required: true, min: 0 },
-  status:      { type: String, enum: ['pending','completed','failed'], default: 'completed' },
-  description: { type: String, maxlength: 500 },
-  reference:   String,
-}, { timestamps: true });
-
-const PaymentSchema = new mongoose.Schema({
-  reference:      { type: String, required: true, unique: true },
-  propertyId:     { type: String, required: true },
-  tenantId:       { type: String, required: true },
-  agentId:        { type: String, required: true },
-  amount:         { type: Number, required: true },
-  amountKobo:     { type: Number, required: true },
-  description:    String,
-  status: {
-    type: String,
-    enum: ['pending', 'confirmed', 'releasing', 'released', 'failed', 'refunded'],
-    default: 'pending',
-  },
-  inspectionDate: Date,
-  releaseDate:    Date,
-  paystackData:     Object,
-  transferReference: String,
-  recipientCode:    String,
-  propertyTitle: String,
-  agentName:     String,
-  tenantEmail:   String,
-}, { timestamps: true });
-
-const AgentBankSchema = new mongoose.Schema({
-  agentId:       { type: String, required: true, unique: true },
-  bankCode:      { type: String, required: true },
-  bankName:      { type: String, required: true },
-  accountNumber: { type: String, required: true },
-  accountName:   { type: String, required: true },
-  recipientCode: { type: String, required: true },
-}, { timestamps: true });
-
-const User        = mongoose.model('User', UserSchema);
-const Property    = mongoose.model('Property', PropertySchema);
-const Transaction = mongoose.model('Transaction', TransactionSchema);
-const Payment     = mongoose.model('Payment',   PaymentSchema);
-const AgentBank   = mongoose.model('AgentBank', AgentBankSchema);
+async function checkDb() {
+  try {
+    await prisma.$connect();
+    console.log('✅ Postgres (Prisma) connected');
+  } catch (err) {
+    console.error('❌ Database connection error:', err.message);
+  }
+}
+checkDb();
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 const safeFmt = (user) => {
-  const obj = user.toObject ? user.toObject() : { ...user };
-  const { password, __v, ...safe } = obj;
-  safe._id = safe._id?.toString();
+  const { password, ...safe } = user;
   return safe;
 };
 
-// FIX 7: Sanitize all 500 errors before they reach the client.
-// Sending err.message exposes MongoDB field names, schema structure, and stack
-// frames. We log the real error server-side but send only a generic message.
 const serverError = (res, err) => {
   console.error('[server error]', err);
   res.status(500).json({ message: 'An internal error occurred' });
@@ -408,12 +351,9 @@ const auth = async (req, res, next) => {
   }
 };
 
-// FIX 8: Re-fetch role from DB on every protected request.
-// JWT payloads are signed at login — a role change after that won't be reflected
-// in old tokens if you only read from req.user.role. The DB is the truth.
 const agentOnly = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('role username');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user || !['agent','admin'].includes(user.role))
       return res.status(403).json({ message: 'Agents and admins only' });
     req.dbUser = user;
@@ -437,35 +377,36 @@ app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
 
     const emailClean = email.toLowerCase().trim();
 
-    if (await User.findOne({ email: emailClean }))
+    if (await prisma.user.findUnique({ where: { email: emailClean } }))
       return res.status(400).json({ message: 'An account with this email already exists' });
 
-    const existing = await PendingReg.findOne({ email: emailClean });
+    const existing = await prisma.pendingReg.findUnique({ where: { email: emailClean } });
     if (existing) {
       const age = Date.now() - new Date(existing.createdAt).getTime();
       if (age < 60_000)
         return res.status(429).json({ message: 'Please wait 60 seconds before requesting a new code' });
-      await existing.deleteOne();
+      await prisma.pendingReg.delete({ where: { email: emailClean } });
     }
 
     const otp       = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     const hashed    = await bcrypt.hash(password, 12);
 
-    await PendingReg.create({
-      username: username.trim(),
-      email:    emailClean,
-      password: hashed,
-      role,
-      otp,
-      otpExpiry,
+    await prisma.pendingReg.create({
+      data: {
+        username: username.trim(),
+        email:    emailClean,
+        password: hashed,
+        role:     role === 'agent' ? 'agent' : 'tenant',
+        otp,
+        otpExpiry,
+      }
     });
 
     await sendOtpEmail(emailClean, username.trim(), otp);
     res.json({ 
       sent: true, 
-      message: `Verification code sent to ${emailClean}`,
-      devOtp: !process.env.RESEND_API_KEY ? otp : undefined
+      message: `Verification code sent to ${emailClean}`
     });
   } catch (err) { serverError(res, err); }
 });
@@ -476,26 +417,17 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ message: 'Email and password required' });
 
-    // ─── ADMIN BYPASS (Easy to remove) ──────────────────────────────────────────
+    const user = await prisma.user.findUnique({ where: { email: String(email).toLowerCase().trim() } });
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
-
-    // Constant-time compare: always run bcrypt even if user not found,
-    // so response time doesn't reveal whether an email exists (user enumeration).
-    const sentinel = '$2a$12$invalidhashusedtoblindtimingXXXXXXXXXXXXXXXXXXXXXXX';
-    const match = user
-      ? await bcrypt.compare(String(password), user.password)
-      : (await bcrypt.compare(String(password), sentinel), false);
+    const match = user ? await bcrypt.compare(String(password), user.password) : false;
 
     if (!user || !match)
       return res.status(401).json({ message: 'Invalid email or password' });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: safeFmt(user) });
   } catch (err) { serverError(res, err); }
 });
-
-// ─── NEW OTP & PASSWORD RESET ROUTES ─────────────────────────────────────────
 
 app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
   try {
@@ -504,7 +436,7 @@ app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Email and verification code are required' });
 
     const emailClean = email.toLowerCase().trim();
-    const pending    = await PendingReg.findOne({ email: emailClean });
+    const pending    = await prisma.pendingReg.findUnique({ where: { email: emailClean } });
 
     if (!pending)
       return res.status(400).json({ message: 'No pending registration found or code expired.', expired: true });
@@ -513,31 +445,30 @@ app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
       return res.status(400).json({ message: 'Verification code has expired.', expired: true });
 
     if (pending.attempts >= 5) {
-      await pending.deleteOne();
+      await prisma.pendingReg.delete({ where: { email: emailClean } });
       return res.status(400).json({ message: 'Too many incorrect attempts. Please start again.', expired: true });
     }
 
     if (pending.otp !== String(otp).trim()) {
-      pending.attempts += 1;
-      await pending.save();
-      return res.status(400).json({ message: `Incorrect code. ${5 - pending.attempts} attempts left.` });
+      await prisma.pendingReg.update({
+        where: { email: emailClean },
+        data: { attempts: { increment: 1 } }
+      });
+      return res.status(400).json({ message: `Incorrect code.` });
     }
 
-    if (await User.findOne({ email: emailClean })) {
-      await pending.deleteOne();
-      return res.status(400).json({ message: 'Account already exists.' });
-    }
-
-    const user = await User.create({
-      username: pending.username,
-      email:    emailClean,
-      password: pending.password,
-      role:     pending.role,
-      isEmailVerified: true,
+    const user = await prisma.user.create({
+      data: {
+        username: pending.username,
+        email:    emailClean,
+        password: pending.password,
+        role:     pending.role,
+        isEmailVerified: true,
+      }
     });
 
-    await pending.deleteOne();
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    await prisma.pendingReg.delete({ where: { email: emailClean } });
+    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user: safeFmt(user) });
   } catch (err) { serverError(res, err); }
 });
@@ -545,11 +476,9 @@ app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
 app.post('/api/auth/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    // Don't reveal if user exists for security, but we'll simulate for demo
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     const otp = generateOTP();
     otpStore.set(email, { otp, expires: Date.now() + 600000, purpose: 'reset' });
-    // console.log(`[OTP] Password Reset for ${email}: ${otp}`);
     res.json({ message: 'If an account exists, a reset code was sent' });
   } catch (err) { serverError(res, err); }
 });
@@ -571,11 +500,13 @@ app.post('/api/auth/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Invalid session' });
     }
     
-    const user = await User.findOne({ email });
+    const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(404).json({ message: 'User not found' });
     
-    user.password = await bcrypt.hash(newPassword, 12);
-    await user.save();
+    await prisma.user.update({
+      where: { email },
+      data: { password: await bcrypt.hash(newPassword, 12) }
+    });
     otpStore.delete(email);
     res.json({ success: true, message: 'Password updated' });
   } catch (err) { serverError(res, err); }
@@ -583,7 +514,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password -__v');
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(safeFmt(user));
   } catch (err) { serverError(res, err); }
@@ -593,44 +524,38 @@ app.get('/api/auth/me', auth, async (req, res) => {
 
 app.get('/api/properties', async (req, res) => {
   try {
-    const filter = {};
+    const where = {};
     const { district, type, status, minRent, maxRent } = req.query;
 
-    // FIX 10: Validate every query param against a strict allowlist.
-    // Without this, ?district[$ne]=Maitama passes a Mongoose operator object
-    // directly and the attacker can bypass your filters or dump all records.
     if (district !== undefined) {
-      if (!VALID_DISTRICTS.includes(district))
-        return res.status(400).json({ message: 'Invalid district' });
-      filter.district = district;
+      if (!VALID_DISTRICTS.includes(district)) return res.status(400).json({ message: 'Invalid district' });
+      where.district = district;
     }
     if (type !== undefined) {
-      if (!VALID_TYPES.includes(type))
-        return res.status(400).json({ message: 'Invalid property type' });
-      filter.type = type;
+      if (!VALID_TYPES.includes(type)) return res.status(400).json({ message: 'Invalid type' });
+      where.type = type;
     }
     if (status !== undefined) {
-      if (!VALID_STATUSES.includes(status))
-        return res.status(400).json({ message: 'Invalid status' });
-      filter.status = status;
+      if (!VALID_STATUSES.includes(status)) return res.status(400).json({ message: 'Invalid status' });
+      where.status = status;
     }
     if (minRent !== undefined || maxRent !== undefined) {
-      const min = Number(minRent), max = Number(maxRent);
-      if ((minRent !== undefined && isNaN(min)) || (maxRent !== undefined && isNaN(max)))
-        return res.status(400).json({ message: 'Rent values must be numbers' });
-      filter.baseRent = {};
-      if (!isNaN(min)) filter.baseRent.$gte = min;
-      if (!isNaN(max)) filter.baseRent.$lte = max;
+      where.baseRent = {};
+      if (minRent !== undefined) where.baseRent.gte = Number(minRent);
+      if (maxRent !== undefined) where.baseRent.lte = Number(maxRent);
     }
 
-    const props = await Property.find(filter).sort({ createdAt: -1 }).limit(200);
-    res.json(props.map(p => ({ ...p.toObject(), _id: p._id.toString() })));
+    const props = await prisma.property.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 200
+    });
+    res.json(props);
   } catch (err) { serverError(res, err); }
 });
 
 app.post('/api/properties', auth, agentOnly, async (req, res) => {
   try {
-    // FIX 6 (applied): Only pick whitelisted fields — blocks isVerified:true injection.
     const allowed = pickAllowed(req.body, PROPERTY_ALLOWED_FIELDS);
 
     if (!allowed.title?.trim())
@@ -643,171 +568,175 @@ app.post('/api/properties', auth, agentOnly, async (req, res) => {
     const caution = Number(allowed.cautionFee)    || 0;
     const coords  = DISTRICT_COORDS[allowed.district] || { lat: 9.05, lng: 7.49 };
 
-    const property = await Property.create({
-      ...allowed,
-      baseRent:    base,
-      serviceCharge: svc,
-      cautionFee:  caution,
-      agencyFee:   base * 0.1,
-      legalFee:    base * 0.1,
-      totalInitialPayment: base + svc + caution + base * 0.2,
-      lat: coords.lat + (Math.random() - 0.5) * 0.02,
-      lng: coords.lng + (Math.random() - 0.5) * 0.02,
-      // These are always server-assigned — never trusted from the client
-      agentId:           req.dbUser._id.toString(),
-      agentName:         req.dbUser.username,
-      isVerified:        false,
-      verificationStage: 'listing_created',
-      status:            'available',
+    const property = await prisma.property.create({
+      data: {
+        ...allowed,
+        baseRent:    base,
+        serviceCharge: svc,
+        cautionFee:  caution,
+        agencyFee:   base * 0.1,
+        legalFee:    base * 0.1,
+        totalInitialPayment: base + svc + caution + base * 0.2,
+        lat: coords.lat + (Math.random() - 0.5) * 0.02,
+        lng: coords.lng + (Math.random() - 0.5) * 0.02,
+        agentId:           req.dbUser.id,
+        agentName:         req.dbUser.username,
+        isVerified:        false,
+        verificationStage: 'listing_created',
+        status:            'available',
+      }
     });
-    res.status(201).json({ ...property.toObject(), _id: property._id.toString() });
+    res.status(201).json(property);
   } catch (err) { serverError(res, err); }
 });
 
 app.get('/api/properties/:id', async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.id);
+    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Property not found' });
-    res.json({ ...prop.toObject(), _id: prop._id.toString() });
+    res.json(prop);
   } catch (err) { serverError(res, err); }
 });
 
 app.put('/api/properties/:id', auth, agentOnly, async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.id);
+    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (prop.agentId !== req.dbUser._id.toString() && req.dbUser.role !== 'admin')
+    if (prop.agentId !== req.dbUser.id && req.dbUser.role !== 'admin')
       return res.status(403).json({ message: 'Not your listing' });
 
-    // FIX 6 (applied): Only update whitelisted fields.
-    // The old Object.assign(prop, req.body) let an attacker flip isVerified to true.
     const allowed = pickAllowed(req.body, PROPERTY_ALLOWED_FIELDS);
-    Object.assign(prop, allowed);
-
+    
     if (allowed.baseRent !== undefined) {
       const base  = Number(allowed.baseRent) || 0;
-      prop.agencyFee  = base * 0.1;
-      prop.legalFee   = base * 0.1;
-      prop.totalInitialPayment = base + (prop.serviceCharge || 0) + (prop.cautionFee || 0) + base * 0.2;
+      allowed.agencyFee  = base * 0.1;
+      allowed.legalFee   = base * 0.1;
+      allowed.totalInitialPayment = base + (prop.serviceCharge || 0) + (prop.cautionFee || 0) + base * 0.2;
     }
-    await prop.save();
-    res.json({ ...prop.toObject(), _id: prop._id.toString() });
+    
+    const updated = await prisma.property.update({
+      where: { id: req.params.id },
+      data: allowed
+    });
+    res.json(updated);
   } catch (err) { serverError(res, err); }
 });
 
 app.delete('/api/properties/:id', auth, agentOnly, async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.id);
+    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (prop.agentId !== req.dbUser._id.toString() && req.dbUser.role !== 'admin')
+    if (prop.agentId !== req.dbUser.id && req.dbUser.role !== 'admin')
       return res.status(403).json({ message: 'Not your listing' });
-    await prop.deleteOne();
+    await prisma.property.delete({ where: { id: req.params.id } });
     res.json({ message: 'Deleted' });
   } catch (err) { serverError(res, err); }
 });
 
-// FIX: /verify now requires agent/admin role AND ownership check.
-// Previously any authenticated user — even a tenant — could call this and
-// push their rented listing to "verified" status.
 app.post('/api/properties/:id/verify', auth, agentOnly, async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.id);
+    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (req.dbUser.role === 'agent' && prop.agentId !== req.dbUser._id.toString())
+    if (req.dbUser.role === 'agent' && prop.agentId !== req.dbUser.id)
       return res.status(403).json({ message: 'Not your listing' });
 
     const idx  = VERIFICATION_STAGES.indexOf(prop.verificationStage);
     const next = VERIFICATION_STAGES[idx + 1];
     if (!next) return res.status(400).json({ message: 'Already fully verified' });
 
-    prop.verificationStage = next;
-    prop.isVerified        = next === 'verified';
-    await prop.save();
-    res.json({ ...prop.toObject(), _id: prop._id.toString() });
+    const updated = await prisma.property.update({
+      where: { id: req.params.id },
+      data: { verificationStage: next, isVerified: next === 'verified' }
+    });
+    res.json(updated);
   } catch (err) { serverError(res, err); }
 });
 
 app.post('/api/properties/:id/book-inspection', auth, async (req, res) => {
   try {
-    const prop = await Property.findById(req.params.id);
+    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Not found' });
-    res.json({ success: true, property: { ...prop.toObject(), _id: prop._id.toString() } });
+    res.json({ success: true, property: prop });
   } catch (err) { serverError(res, err); }
 });
 
 // ─── PAYSTACK PAYMENTS ────────────────────────────────────────────────────────
 
-// 1. Initialize payment — tenant starts paying for a property
 app.post('/api/payments/initialize', auth, async (req, res) => {
   try {
     if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Payment not configured' });
     const { propertyId, inspectionDate } = req.body;
     if (!propertyId) return res.status(400).json({ message: 'Property ID required' });
 
-    const insDate = inspectionDate ? new Date(inspectionDate) : null;
-    if (insDate && isNaN(insDate.getTime())) return res.status(400).json({ message: 'Invalid inspection date' });
-    if (insDate && insDate < new Date()) return res.status(400).json({ message: 'Inspection date must be in the future' });
+    // Fetch full user record (auth middleware only decodes the JWT)
+    const tenant = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!tenant) return res.status(404).json({ message: 'User not found' });
 
-    const property = await Property.findById(propertyId);
+    const insDate = inspectionDate ? new Date(inspectionDate) : null;
+    const property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) return res.status(404).json({ message: 'Property not found' });
     if (property.status !== 'available') return res.status(400).json({ message: 'This property is no longer available' });
 
-    const tenant = await User.findById(req.user.id).select('email username');
-    const amountNaira = property.totalInitialPayment;
-    const amountKobo  = amountNaira * 100;
-    if (amountKobo < 10000) return res.status(400).json({ message: 'Payment amount too small' });
-
+    const amountMajor = property.totalInitialPayment;
+    const amount = amountMajor * 100;
     const reference = `VF-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 
     const paystackData = await paystackRequest('POST', '/transaction/initialize', {
-      email: tenant.email, amount: amountKobo, reference,
+      email: tenant.email, amount, reference,
       callback_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/#/payment/verify/${reference}`,
-      metadata: { propertyId, propertyTitle: property.title, tenantId: req.user.id, agentId: property.agentId }
+      metadata: { propertyId, propertyTitle: property.title, tenantId: tenant.id, agentId: property.agentId }
     });
 
-    const baseDate = insDate || new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const releaseDate = new Date(baseDate.getTime() + RELEASE_HOURS * 60 * 60 * 1000);
+    const releaseDate = new Date(Date.now() + (insDate ? 0 : 24 * 60 * 60 * 1000) + RELEASE_HOURS * 60 * 60 * 1000);
 
-    await Payment.create({
-      reference, propertyId, tenantId: req.user.id, agentId: property.agentId,
-      amount: amountNaira, amountKobo, description: `Payment for ${property.title}`,
-      status: 'pending', inspectionDate: insDate, releaseDate,
-      propertyTitle: property.title, agentName: property.agentName, tenantEmail: tenant.email
+    await prisma.payment.create({
+      data: {
+        reference,
+        propertyId,
+        tenantId:   tenant.id,
+        agentId:    property.agentId,
+        amount:     amountMajor,
+        amountKobo: amount,
+        status:     'pending',
+        inspectionDate: insDate,
+        releaseDate,
+        propertyTitle: property.title,
+        agentName:     property.agentName,
+        tenantEmail:   tenant.email
+      }
     });
 
-    res.json({ reference, authorizationUrl: paystackData.authorization_url, accessCode: paystackData.access_code, amount: amountNaira, propertyTitle: property.title, releaseDate: releaseDate.toISOString() });
+    res.json({ reference, authorizationUrl: paystackData.authorization_url, accessCode: paystackData.access_code, amount: amountMajor, propertyTitle: property.title, releaseDate: releaseDate.toISOString() });
   } catch (err) { serverError(res, err); }
 });
 
-// 2. Verify payment
 app.get('/api/payments/verify/:reference', auth, async (req, res) => {
   try {
-    const payment = await Payment.findOne({ reference: req.params.reference });
+    const payment = await prisma.payment.findUnique({ where: { reference: req.params.reference } });
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     if (payment.tenantId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
 
-    if (payment.status !== 'pending') return res.json({ status: payment.status, payment: safeFmt(payment) });
+    if (payment.status !== 'pending') return res.json({ status: payment.status, payment });
 
     const txData = await paystackRequest('GET', `/transaction/verify/${req.params.reference}`);
     if (txData.status === 'success') {
-      payment.status = 'confirmed';
-      payment.paystackData = txData;
-      await payment.save();
-      await Property.findByIdAndUpdate(payment.propertyId, { status: 'under-offer' });
-      return res.json({ status: 'confirmed', payment: safeFmt(payment) });
+      await prisma.payment.update({ where: { id: payment.id }, data: { status: 'confirmed', paystackData: txData } });
+      await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'under-offer' } });
+      return res.json({ status: 'confirmed', payment });
     }
-    res.json({ status: txData.status, payment: safeFmt(payment) });
+    res.json({ status: txData.status, payment });
   } catch (err) { serverError(res, err); }
 });
 
-// 3. List payments
 app.get('/api/payments', auth, async (req, res) => {
   try {
-    await processScheduledReleases();
-    const filter = req.user.role === 'agent' || req.user.role === 'admin'
-      ? { agentId: req.user.id } : { tenantId: req.user.id };
-    const payments = await Payment.find(filter).sort({ createdAt: -1 }).limit(50);
-    res.json(payments.map(paymentFmt));
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const payments = await prisma.payment.findMany({
+      where: user.role === 'agent' ? { agentId: user.id } : { tenantId: user.id },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(payments);
   } catch (err) { serverError(res, err); }
 });
 
@@ -834,37 +763,40 @@ app.post('/api/banks/setup', auth, agentOnly, async (req, res) => {
     const recipient = await paystackRequest('POST', '/transferrecipient', {
       type: 'nuban', name: accountName, account_number: accountNumber, bank_code: bankCode, currency: 'NGN'
     });
-    const bank = await AgentBank.findOneAndUpdate(
-      { agentId: req.dbUser._id.toString() },
-      { agentId: req.dbUser._id.toString(), bankCode, bankName, accountNumber, accountName, recipientCode: recipient.recipient_code },
-      { upsert: true, new: true }
-    );
-    res.json({ message: 'Bank account saved', bankName: bank.bankName, accountName: bank.accountName, accountNumber: bank.accountNumber.replace(/\d(?=\d{4})/g, '*') });
+    const bank = await prisma.agentBank.findUnique({ where: { agentId: req.dbUser.id } });
+    if (bank) return res.status(409).json({ message: 'Bank details already exist' });
+
+    const newBank = await prisma.agentBank.create({
+      data: {
+        agentId:       req.dbUser.id,
+        bankCode,
+        bankName,
+        accountNumber,
+        accountName,
+        recipientCode: recipient.recipient_code,
+      }
+    });
+    res.status(201).json(newBank);
   } catch (err) { serverError(res, err); }
 });
 
 app.get('/api/banks/setup', auth, agentOnly, async (req, res) => {
   try {
-    const bank = await AgentBank.findOne({ agentId: req.dbUser._id.toString() });
+    const bank = await prisma.agentBank.findUnique({ where: { agentId: req.dbUser.id } });
     if (!bank) return res.json({ configured: false });
     res.json({ configured: true, bankName: bank.bankName, accountName: bank.accountName, accountNumber: bank.accountNumber.replace(/\d(?=\d{4})/g, '*') });
   } catch (err) { serverError(res, err); }
 });
 
-const paymentFmt = (p) => ({
-  _id: p._id.toString(), reference: p.reference, propertyId: p.propertyId, propertyTitle: p.propertyTitle,
-  agentName: p.agentName, amount: p.amount, status: p.status, inspectionDate: p.inspectionDate,
-  releaseDate: p.releaseDate, transferReference: p.transferReference, createdAt: p.createdAt,
-});
-
 // ─── STATUS ───────────────────────────────────────────────────────────────────
 
-// Only expose DB state in non-production environments.
-app.get('/api/status', (req, res) => {
-  const payload = { status: 'running', version: '2.0.0' };
-  if (process.env.NODE_ENV !== 'production')
-    payload.db = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  res.json(payload);
+app.get('/api/status', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'running', version: '2.0.0', db: 'connected' });
+  } catch {
+    res.status(503).json({ status: 'running', version: '2.0.0', db: 'disconnected' });
+  }
 });
 
 app.listen(PORT, () => {
