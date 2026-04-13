@@ -790,6 +790,27 @@ app.get('/api/banks/setup', auth, agentOnly, async (req, res) => {
 
 // ─── STATUS ───────────────────────────────────────────────────────────────────
 
+app.get('/', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Verifind API</title>
+        <style>
+          body { font-family: 'DM Sans', sans-serif; text-align: center; padding: 50px; color: #333; background-color: #F8F9FA; }
+          h1 { color: #1B4FD8; }
+          a { color: #1B4FD8; text-decoration: none; font-weight: bold; }
+          a:hover { text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        <h1>Verifind API is running 🚀</h1>
+        <p>This is the backend service for the Verifind application.</p>
+        <p><a href="/api/status">Check System Status</a></p>
+      </body>
+    </html>
+  `);
+});
+
 app.get('/api/status', async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
