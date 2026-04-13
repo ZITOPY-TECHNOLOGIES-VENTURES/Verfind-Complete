@@ -59,7 +59,7 @@ const ListingForm: React.FC<ListingFormProps> = ({ onPropertyCreated }) => {
       const dataUrl = await new Promise<string>(resolve => {
         const reader = new FileReader();
         reader.onload = ev => resolve(ev.target!.result as string);
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(file as File);
       });
       newImages.push(dataUrl);
     }

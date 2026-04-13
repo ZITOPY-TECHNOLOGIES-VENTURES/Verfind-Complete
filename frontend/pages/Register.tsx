@@ -232,7 +232,7 @@ const Register: React.FC = () => {
 
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <Logo showText size={28} lightOverride />
+            <Logo showText size={28} light />
           </div>
 
           {/* Error */}

@@ -504,7 +504,6 @@ const Dashboard: React.FC = () => {
       onContactAgent={() => { setSelectedProperty(null); setShowAuthGate(true); }}
       isAuthenticated={isAuthenticated}
       onUpdate={handlePropertyUpdate}
-      allProperties={properties}
     />
   );
 
@@ -627,16 +626,6 @@ const Dashboard: React.FC = () => {
 
       <BottomNav currentMode={AppMode.BROWSE} onModeChange={modeChange} user={user} onFindAgentClick={() => { if (!isAuthenticated) return setShowAuthGate(true); modeChange(AppMode.FIND_AGENT); }} />
 
-      {mode === AppMode.FIND_AGENT && (
-         <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-20 flex flex-col items-center justify-center text-center">
-           <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
-             <UserIcon size={32} className="text-blue-500" />
-           </div>
-           <h2 className="text-3xl font-bold mb-4 font-['Fraunces'] text-[var(--text-primary)]">Agent Directory</h2>
-           <p className="text-[var(--text-muted)] max-w-md mx-auto">Connect with top-rated real estate professionals. Our verified agent list is coming shortly.</p>
-         </div>
-      )}
-
       {/* ══════════════════════════════════════════════════════
           AI CHAT FAB — bottom-right, fades on scroll,
           expands into a glass chat tray when clicked
@@ -755,6 +744,15 @@ const Dashboard: React.FC = () => {
                 <p style={{ fontFamily:"'Fraunces',serif", fontSize:22, color:'var(--text-primary)', marginBottom:8 }}>Inspection Calendar</p>
                 <p style={{ fontSize:14 }}>Your scheduled visits will appear here.</p>
               </div>
+            )}
+            {mode===AppMode.FIND_AGENT && (
+               <div className="w-full max-w-7xl mx-auto px-4 md:px-8 py-20 flex flex-col items-center justify-center text-center">
+                 <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
+                   <UserIcon size={32} className="text-blue-500" />
+                 </div>
+                 <h2 className="text-3xl font-bold mb-4 font-['Fraunces'] text-[var(--text-primary)]">Agent Directory</h2>
+                 <p className="text-[var(--text-muted)] max-w-md mx-auto">Connect with top-rated real estate professionals. Our verified agent list is coming shortly.</p>
+               </div>
             )}
           </div>
         </div>

@@ -146,7 +146,7 @@ const Login: React.FC = () => {
 
           {/* ── Logo ── */}
           <div className="flex items-center justify-center mb-6">
-            <Logo showText size={30} lightOverride />
+            <Logo showText size={30} light />
           </div>
 
           {/* ── Context hint — why are they being asked to log in? ── */}

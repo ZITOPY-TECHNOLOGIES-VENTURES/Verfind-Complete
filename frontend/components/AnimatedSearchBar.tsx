@@ -64,7 +64,7 @@ export const AnimatedSearchBar: React.FC<AnimatedSearchBarProps> = ({
   const [showDropdown,  setShowDropdown]  = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const tick = useCallback(() => {
     const target = suggestions[suggestionIdx];
