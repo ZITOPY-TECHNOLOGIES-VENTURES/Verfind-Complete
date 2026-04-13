@@ -298,37 +298,39 @@ const BrowseHero: React.FC<{
       {/* Gradient overlay for readability */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,31,61,0.85) 0%, rgba(10,31,61,0.3) 50%, rgba(10,31,61,0.1) 100%)" }} />
 
-      {/* ── CONTENT CONTAINER ── */}
-      <div style={{ position:'relative', zIndex:10, height:'100%', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', paddingTop:60 }}>
-        
-        <h1 style={{ fontSize: "clamp(36px, 5vw, 56px)", fontWeight: 700, color: "#FFFFFF", margin: "0 0 16px", fontFamily: '"Ivar Headline", Georgia, serif', lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.6)", textAlign:'center' }}>
-          Rentals. Homes.<br />Agents. Verified.
-        </h1>
-        
-        <p style={{ color:'rgba(255,255,255,0.95)', fontSize:16, maxWidth:420, margin:'0 auto 24px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.8)', textAlign:'center' }}>
-          Zero ghost listings. {propertyCount > 0 ? `${propertyCount} verified` : 'Thousands of'} homes in Abuja.
-        </p>
-      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'16px 24px', position:'absolute', top:0, left:0, right:0, zIndex:10 }}>
-        <Logo showText size={28} />
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+      {/* ── TOP NAV — absolute so it overlays the hero ── */}
+      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', position:'absolute', top:0, left:0, right:0, zIndex:20, flexWrap:'wrap', gap:8 }}>
+        <Logo showText size={26} />
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
           {isLive !== null && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:99, background:'rgba(255,255,255,0.09)', border:'1px solid rgba(255,255,255,0.14)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', borderRadius:99, background:'rgba(255,255,255,0.09)', border:'1px solid rgba(255,255,255,0.14)' }}>
               <span style={{ width:6, height:6, borderRadius:'50%', background:isLive?'#34D399':'#FCD34D', display:'inline-block', boxShadow:isLive?'0 0 8px rgba(52,211,153,0.8)':'none' }}/>
               <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.55)', textTransform:'uppercase' as any, letterSpacing:'0.1em' }}>{isLive?'Live':'Local'}</span>
             </div>
           )}
           {user ? (
-            <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 14px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer' }}>
+            <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer' }}>
               <UserIcon size={14}/> {user.username}
             </button>
           ) : (
-            <div style={{ display:'flex', gap:8 }}>
-              <button onClick={() => navigate('/login')}    style={{ padding:'7px 16px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.28)', color:'rgba(255,255,255,0.82)', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer' }}>Sign in</button>
-              <button onClick={() => navigate('/register')} style={{ padding:'7px 16px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'1px solid rgba(255,255,255,1)', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer' }}>Get started</button>
+            <div style={{ display:'flex', gap:6 }}>
+              <button onClick={() => navigate('/login')}    style={{ padding:'7px 14px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.28)', color:'rgba(255,255,255,0.9)', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Sign in</button>
+              <button onClick={() => navigate('/register')} style={{ padding:'7px 14px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'none', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Get started</button>
             </div>
           )}
         </div>
       </nav>
+
+      {/* ── CONTENT CONTAINER ── */}
+      <div style={{ position:'relative', zIndex:10, height:'100%', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', paddingTop:60 }}>
+        
+        <h1 style={{ fontSize: "clamp(28px, 5vw, 56px)", fontWeight: 700, color: "#FFFFFF", margin: "0 0 12px", fontFamily: '"Ivar Headline", Georgia, serif', lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.6)", textAlign:'center', padding:'0 16px' }}>
+          Rentals. Homes.<br />Agents. Verified.
+        </h1>
+        
+        <p style={{ color:'rgba(255,255,255,0.9)', fontSize:15, maxWidth:400, margin:'0 auto 20px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.8)', textAlign:'center', padding:'0 16px' }}>
+          Zero ghost listings. {propertyCount > 0 ? `${propertyCount} verified` : 'Thousands of'} homes in Abuja.
+        </p>
 
         {/* Zillow Style Tabs */}
         <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
