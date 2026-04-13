@@ -805,7 +805,18 @@ app.get('/api/status', async (req, res) => {
 
 // React fallback routing MUST be after all API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
+    if (err) {
+      res.status(500).send(`
+        <div style="font-family: sans-serif; padding: 40px; text-align: center;">
+          <h2>⚠️ Frontend Build Not Found</h2>
+          <p>The backend API is running successfully, but the React frontend (<code>index.html</code>) is missing.</p>
+          <p>To fix this, go to your <b>Render Dashboard</b>, open this Web Service, and change the <b>Build Command</b> to:</p>
+          <code style="background: #eee; padding: 8px; border-radius: 4px; font-size: 16px;">npm install && npm run build</code>
+        </div>
+      `);
+    }
+  });
 });
 
 app.listen(PORT, () => {
