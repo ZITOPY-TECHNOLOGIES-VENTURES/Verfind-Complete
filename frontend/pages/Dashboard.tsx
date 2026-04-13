@@ -622,8 +622,6 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      <DashboardFooter isAuthenticated={isAuthenticated} onAuthRequired={handleAuthRequired} />
-
       <BottomNav currentMode={AppMode.BROWSE} onModeChange={modeChange} user={user} onFindAgentClick={() => { if (!isAuthenticated) return setShowAuthGate(true); modeChange(AppMode.FIND_AGENT); }} />
 
       {/* ══════════════════════════════════════════════════════
