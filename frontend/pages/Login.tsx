@@ -4,7 +4,19 @@ import { useAuth } from '../contexts/AuthContext';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff, ShieldCheck, X } from 'lucide-react';
 import { Logo } from '../components/Logo';
 
+function useWindowWidth() {
+  const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 800);
+  useEffect(() => {
+    const handler = () => setW(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return w;
+}
+
 const Login: React.FC = () => {
+  const w = useWindowWidth();
+  const isMobile = w < 640;
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -79,19 +91,10 @@ const Login: React.FC = () => {
   };
 
   return (
-    /* ── Full-screen ambient backdrop ── */
-    <>
-    <style>{`
-      @media (max-width: 639px) {
-        .vf-login-card { padding: 24px 20px 20px !important; }
-        .vf-login-wrap { padding: 12px !important; }
-      }
-    `}</style>
     <div
-      className="vf-login-wrap fixed inset-0 flex items-center justify-center overflow-y-auto"
+      className="fixed inset-0 flex items-center justify-center overflow-y-auto"
       style={{
-        padding: 16,
-        /* Layered radial gradients — rich dark navy/ink atmosphere */
+        padding: isMobile ? '12px 12px' : '16px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 60% 50% at 80% 70%, rgba(17,24,39,0.9) 0%, transparent 55%),
@@ -119,29 +122,23 @@ const Login: React.FC = () => {
           iOS 26 liquid glass — frosted, iridescent edge, specular highlight
           ══════════════════════════════════════ */}
       <div
-        className="relative w-full"
+        className="relative w-full my-auto"
         style={{
-          maxWidth: '400px',
-          /* Entrance animation */
+          maxWidth: isMobile ? '100%' : '400px',
           opacity:   ready ? 1 : 0,
           transform: ready ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
           transition: 'opacity 0.45s cubic-bezier(0.34,1.26,0.64,1), transform 0.45s cubic-bezier(0.34,1.26,0.64,1)',
         }}>
 
         {/* Glass surface */}
-        <div className="vf-login-card" style={{
+        <div style={{
           background:    'rgba(255,255,255,0.09)',
           backdropFilter:'blur(48px) saturate(180%)',
           WebkitBackdropFilter: 'blur(48px) saturate(180%)',
           border:        '1px solid rgba(255,255,255,0.18)',
-          borderRadius:  '32px',
-          boxShadow: `
-            0 1px 0 rgba(255,255,255,0.25) inset,
-            0 -1px 0 rgba(0,0,0,0.2) inset,
-            0 32px 80px rgba(0,0,0,0.55),
-            0 8px 24px rgba(0,0,0,0.3)
-          `,
-          padding: '36px 32px 32px',
+          borderRadius:  isMobile ? '24px' : '32px',
+          boxShadow: '0 1px 0 rgba(255,255,255,0.25) inset, 0 -1px 0 rgba(0,0,0,0.2) inset, 0 32px 80px rgba(0,0,0,0.55)',
+          padding: isMobile ? '24px 20px 20px' : '36px 32px 32px',
           position: 'relative',
           overflow: 'hidden',
         }}>
@@ -153,8 +150,8 @@ const Login: React.FC = () => {
             }} />
 
           {/* ── Logo ── */}
-          <div className="flex items-center justify-center mb-6">
-            <Logo showText size={30} light />
+          <div className="flex items-center justify-center" style={{ marginBottom: isMobile ? 16 : 24 }}>
+            <Logo showText size={isMobile ? 24 : 30} light />
           </div>
 
           {/* ── Context hint — why are they being asked to log in? ── */}
@@ -289,7 +286,6 @@ const Login: React.FC = () => {
 
       </div>
     </div>
-    </>
   );
 };
 

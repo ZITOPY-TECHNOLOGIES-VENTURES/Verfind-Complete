@@ -9,6 +9,16 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 
+function useWindowWidth() {
+  const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 800);
+  useEffect(() => {
+    const handler = () => setW(window.innerWidth);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+  return w;
+}
+
 type Role   = 'tenant' | 'agent';
 type Screen = 'role' | 'details' | 'password' | 'verify';
 
@@ -101,6 +111,8 @@ const Register: React.FC = () => {
   const { sendOtp, verifyOtp } = useAuth();
   const navigate     = useNavigate();
   const location     = useLocation();
+  const w = useWindowWidth();
+  const isMobile = w < 640;
 
   const params    = new URLSearchParams(location.search);
   const returnTo  = params.get('returnTo')  || '/dashboard';
@@ -204,16 +216,16 @@ const Register: React.FC = () => {
     backdropFilter:       'blur(60px) saturate(180%)',
     WebkitBackdropFilter: 'blur(60px) saturate(180%)',
     border:               '1px solid rgba(255,255,255,0.16)',
-    borderRadius:         '32px',
+    borderRadius:         isMobile ? '24px' : '32px',
     boxShadow:            '0 1px 0 rgba(255,255,255,0.22) inset, 0 -1px 0 rgba(0,0,0,0.18) inset, 0 40px 100px rgba(0,0,0,0.55)',
-    padding:              '36px 32px 32px',
+    padding:              isMobile ? '20px 16px 16px' : '36px 32px 32px',
     position:             'relative', overflow: 'hidden',
   };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-y-auto"
       style={{
-        padding: 16,
+        padding: isMobile ? '12px' : '16px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 15%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 70% 50% at 80% 80%, rgba(15,23,42,0.9) 0%, transparent 60%),
@@ -221,28 +233,19 @@ const Register: React.FC = () => {
         `,
         minHeight: '100dvh',
       }}>
-    <style>{`
-      @media (max-width: 639px) {
-        .vf-reg-card { padding: 20px 16px 16px !important; }
-        .vf-reg-logo { margin-bottom: 12px !important; }
-        .vf-reg-dots { margin-bottom: 14px !important; }
-        .vf-reg-heading { margin-bottom: 12px !important; }
-        .vf-reg-heading h1 { font-size: 20px !important; }
-      }
-    `}</style>
 
       {/* Ambient glows */}
       <div className="fixed pointer-events-none" style={{ width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.14) 0%, transparent 70%)', top: '-140px', left: '-140px', filter: 'blur(60px)' }} />
       <div className="fixed pointer-events-none" style={{ width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', bottom: '-100px', right: '-100px', filter: 'blur(60px)' }} />
 
-      <div className="w-full relative z-10 my-auto py-6" style={{ maxWidth: '420px', ...cardStyle }}>
+      <div className="w-full relative z-10 my-auto" style={{ maxWidth: isMobile ? '100%' : '420px', ...cardStyle }}>
         <div className="vf-reg-card" style={glassStyle}>
           {/* Shimmer */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%)', borderRadius: '32px' }} />
 
           {/* Logo */}
-          <div className="vf-reg-logo flex justify-center mb-6">
-            <Logo showText size={28} light />
+          <div className="vf-reg-logo flex justify-center" style={{ marginBottom: isMobile ? 10 : 24 }}>
+            <Logo showText size={isMobile ? 22 : 28} light />
           </div>
 
           {/* Error */}
@@ -260,9 +263,9 @@ const Register: React.FC = () => {
           {/* ══ ROLE PICKER ══ */}
           {screen === 'role' && (
             <div>
-            <div className="vf-reg-dots"><Dots total={3} current={0} /></div>
-              <div className="vf-reg-heading text-center mb-6">
-                <h1 className="text-2xl font-black text-white mb-1">Join Verifind</h1>
+            <div className="vf-reg-dots" style={{ marginBottom: isMobile ? 10 : 0 }}><Dots total={3} current={0} /></div>
+              <div className="vf-reg-heading text-center" style={{ marginBottom: isMobile ? 10 : 24 }}>
+                <h1 style={{ fontSize: isMobile ? 20 : 24 }} className="font-black text-white mb-1">Join Verifind</h1>
                 <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>How will you use Verifind?</p>
               </div>
 
