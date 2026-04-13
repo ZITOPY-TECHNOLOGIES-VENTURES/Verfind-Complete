@@ -256,37 +256,45 @@ const Register: React.FC = () => {
                 <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>How will you use Verifind?</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 mb-6">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                 {([
-                  { id: 'tenant' as Role, title: 'Tenant / Buyer', sub: 'Find & secure property', icon: <Home size={24} />,
-                    perks: ['Browse 2,400+ listings', 'Secure escrow payments', 'Book inspections'] },
-                  { id: 'agent'  as Role, title: 'Property Agent', sub: 'List & manage property', icon: <Briefcase size={24} />,
-                    perks: ['Post verified listings', 'Manage your pipeline', 'Commission payouts'] },
+                  { id: 'tenant' as Role, title: 'Tenant / Buyer', sub: 'Find & secure a verified property', icon: <Home size={22} />,
+                    perks: ['Browse 2,400+ listings · Escrow payments · Book inspections'] },
+                  { id: 'agent'  as Role, title: 'Property Agent', sub: 'List, verify & manage rentals', icon: <Briefcase size={22} />,
+                    perks: ['Post verified listings · Manage pipeline · Commission payouts'] },
                 ] as const).map(opt => {
                   const active = role === opt.id;
                   return (
                     <button key={opt.id} type="button" onClick={() => setRole(opt.id)}
-                      className="relative flex flex-col items-center text-center p-5 rounded-3xl transition-all"
                       style={{
-                        background: active ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.06)',
-                        border: `1.5px solid ${active ? 'rgba(59,130,246,0.6)' : 'rgba(255,255,255,0.12)'}`,
+                        display: 'flex', alignItems: 'center', gap: 16,
+                        padding: '16px 18px', borderRadius: 20, textAlign: 'left',
+                        background: active ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.06)',
+                        border: `1.5px solid ${active ? 'rgba(59,130,246,0.55)' : 'rgba(255,255,255,0.12)'}`,
                         cursor: 'pointer',
-                        boxShadow: active ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none',
+                        boxShadow: active ? '0 0 0 3px rgba(59,130,246,0.12)' : 'none',
+                        transition: 'all 0.18s',
+                        width: '100%',
                       }}>
-                      {active && <CheckCircle2 size={13} className="absolute top-3 right-3" style={{ color: '#60A5FA' }} />}
-                      <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-3"
-                        style={{ background: active ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)', color: active ? '#93C5FD' : 'rgba(255,255,255,0.35)' }}>
+                      {/* Icon */}
+                      <div style={{
+                        width: 46, height: 46, borderRadius: 14, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: active ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.08)',
+                        color: active ? '#93C5FD' : 'rgba(255,255,255,0.4)',
+                      }}>
                         {opt.icon}
                       </div>
-                      <p className="font-black text-sm text-white mb-0.5">{opt.title}</p>
-                      <p className="text-[9px] mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>{opt.sub}</p>
-                      <div className="w-full space-y-1">
-                        {opt.perks.map(p => (
-                          <p key={p} className="flex items-center gap-1.5 text-[9px] text-left"
-                            style={{ color: active ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.25)' }}>
-                            <Check size={8} style={{ color: active ? '#60A5FA' : 'rgba(255,255,255,0.2)', flexShrink: 0 }} /> {p}
-                          </p>
-                        ))}
+                      {/* Text */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <p style={{ fontWeight: 800, fontSize: 14, color: '#fff', margin: 0 }}>{opt.title}</p>
+                          {active && <CheckCircle2 size={15} style={{ color: '#60A5FA', flexShrink: 0 }} />}
+                        </div>
+                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: '0 0 6px' }}>{opt.sub}</p>
+                        <p style={{ fontSize: 11, color: active ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.25)', margin: 0, lineHeight: 1.5 }}>
+                          {opt.perks[0]}
+                        </p>
                       </div>
                     </button>
                   );
