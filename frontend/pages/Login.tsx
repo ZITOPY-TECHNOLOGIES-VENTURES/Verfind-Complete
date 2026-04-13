@@ -80,9 +80,17 @@ const Login: React.FC = () => {
 
   return (
     /* ── Full-screen ambient backdrop ── */
+    <>
+    <style>{`
+      @media (max-width: 639px) {
+        .vf-login-card { padding: 24px 20px 20px !important; }
+        .vf-login-wrap { padding: 12px !important; }
+      }
+    `}</style>
     <div
-      className="fixed inset-0 flex items-center justify-center p-4 overflow-hidden"
+      className="vf-login-wrap fixed inset-0 flex items-center justify-center overflow-y-auto"
       style={{
+        padding: 16,
         /* Layered radial gradients — rich dark navy/ink atmosphere */
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
@@ -121,7 +129,7 @@ const Login: React.FC = () => {
         }}>
 
         {/* Glass surface */}
-        <div style={{
+        <div className="vf-login-card" style={{
           background:    'rgba(255,255,255,0.09)',
           backdropFilter:'blur(48px) saturate(180%)',
           WebkitBackdropFilter: 'blur(48px) saturate(180%)',
@@ -281,6 +289,7 @@ const Login: React.FC = () => {
 
       </div>
     </div>
+    </>
   );
 };
 

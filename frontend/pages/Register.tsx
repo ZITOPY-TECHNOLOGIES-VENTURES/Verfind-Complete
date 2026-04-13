@@ -211,8 +211,9 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 overflow-auto"
+    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto"
       style={{
+        padding: 16,
         background: `
           radial-gradient(ellipse 80% 60% at 20% 15%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 70% 50% at 80% 80%, rgba(15,23,42,0.9) 0%, transparent 60%),
@@ -220,18 +221,27 @@ const Register: React.FC = () => {
         `,
         minHeight: '100dvh',
       }}>
+    <style>{`
+      @media (max-width: 639px) {
+        .vf-reg-card { padding: 20px 16px 16px !important; }
+        .vf-reg-logo { margin-bottom: 12px !important; }
+        .vf-reg-dots { margin-bottom: 14px !important; }
+        .vf-reg-heading { margin-bottom: 12px !important; }
+        .vf-reg-heading h1 { font-size: 20px !important; }
+      }
+    `}</style>
 
       {/* Ambient glows */}
       <div className="fixed pointer-events-none" style={{ width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.14) 0%, transparent 70%)', top: '-140px', left: '-140px', filter: 'blur(60px)' }} />
       <div className="fixed pointer-events-none" style={{ width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', bottom: '-100px', right: '-100px', filter: 'blur(60px)' }} />
 
       <div className="w-full relative z-10 my-auto py-6" style={{ maxWidth: '420px', ...cardStyle }}>
-        <div style={glassStyle}>
+        <div className="vf-reg-card" style={glassStyle}>
           {/* Shimmer */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%)', borderRadius: '32px' }} />
 
           {/* Logo */}
-          <div className="flex justify-center mb-6">
+          <div className="vf-reg-logo flex justify-center mb-6">
             <Logo showText size={28} light />
           </div>
 
@@ -250,8 +260,8 @@ const Register: React.FC = () => {
           {/* ══ ROLE PICKER ══ */}
           {screen === 'role' && (
             <div>
-              <Dots total={3} current={0} />
-              <div className="text-center mb-6">
+            <div className="vf-reg-dots"><Dots total={3} current={0} /></div>
+              <div className="vf-reg-heading text-center mb-6">
                 <h1 className="text-2xl font-black text-white mb-1">Join Verifind</h1>
                 <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>How will you use Verifind?</p>
               </div>
