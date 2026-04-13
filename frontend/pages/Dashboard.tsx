@@ -260,122 +260,134 @@ const BrowseHero: React.FC<{
   onSearch:()=>void;
 }> = ({ propertyCount, user, isLive, onModeChange, intent, setIntent, ...searchProps }) => {
   const navigate = useNavigate();
-  // Detect mobile via window width — only used for layout decisions
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   return (
-    <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 488, borderBottom:'1px solid rgba(0,0,0,0.1)', overflow: 'visible' }}>
-      {/* ── ZILLOW STYLE HERO BACKGROUND ── */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #1B4FD8 0%, #0E3A6E 40%, #095D50 100%)" }}>
-        <svg viewBox="0 0 1920 488" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" opacity="0.45" style={{ position:'absolute', inset:0 }}>
-          <rect width="1920" height="488" fill="url(#sky)" />
+    <>
+      <style>{`
+        .vf-hero { background: linear-gradient(135deg,#1B4FD8 0%,#0E3A6E 40%,#095D50 100%); position:relative; border-bottom:1px solid rgba(0,0,0,0.1); }
+        .vf-hero-overlay { position:absolute; inset:0; background:linear-gradient(to top,rgba(10,31,61,0.85) 0%,rgba(10,31,61,0.3) 50%,rgba(10,31,61,0.1) 100%); pointer-events:none; }
+        .vf-hero-bg-svg { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+        .vf-hero-nav { position:relative; z-index:20; display:flex; align-items:center; justify-content:space-between; padding:14px 20px; gap:8px; }
+        .vf-hero-content { position:relative; z-index:10; display:flex; flex-direction:column; align-items:center; padding:20px 16px 32px; }
+        .vf-hero-h1 { font-size:clamp(32px,5vw,56px); font-weight:700; color:#fff; margin:0 0 12px; font-family:Georgia,serif; line-height:1.15; text-shadow:0 2px 12px rgba(0,0,0,0.6); text-align:center; }
+        .vf-hero-sub { color:rgba(255,255,255,0.9); font-size:15px; max-width:400px; margin:0 auto 20px; line-height:1.6; text-align:center; }
+        .vf-hero-search-full { display:block; }
+        .vf-hero-search-mobile { display:none; }
+        .vf-hero-stats { display:flex; justify-content:center; flex-wrap:wrap; gap:6px 20px; margin-top:24px; }
+        @media (max-width:639px) {
+          .vf-hero-content { padding:12px 12px 20px; }
+          .vf-hero-h1 { font-size:24px; margin-bottom:10px; }
+          .vf-hero-sub { display:none; }
+          .vf-hero-search-full { display:none; }
+          .vf-hero-search-mobile { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.95); border-radius:14px; padding:10px 12px; width:100%; max-width:100%; box-shadow:0 4px 20px rgba(0,0,0,0.2); }
+          .vf-hero-stats { display:none; }
+          .vf-hero-tabs-btn { padding:7px 14px !important; font-size:13px !important; }
+        }
+      `}</style>
+
+      <div className="vf-hero">
+        {/* Background SVG illustration — desktop only decoration */}
+        <div className="vf-hero-overlay" />
+        <svg className="vf-hero-bg-svg" viewBox="0 0 1920 488" preserveAspectRatio="xMidYMid slice" opacity="0.4">
           <defs>
-            <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="vfsky" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#a8c8f0" />
               <stop offset="100%" stopColor="#d4e8f8" />
             </linearGradient>
-            <linearGradient id="grass" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="vfgrass" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#5a9e3a" />
               <stop offset="100%" stopColor="#3d7a28" />
             </linearGradient>
           </defs>
-          <rect x="0" y="360" width="1920" height="128" fill="url(#grass)" />
-          {[100, 340, 580, 820, 1060, 1300, 1540, 1720].map((x, i) => (
-            <g key={x} transform={`translate(${x}, ${240 + (i % 2) * 20})`}>
-              <rect x="0" y="70" width="140" height="120" fill={["#e8d5c4","#d4e8c4","#c4d4e8","#e8c4d4"][i%4]} />
-              <polygon points="70,0 -10,70 150,70" fill={["#b8947a","#8ab87a","#7a8ab8","#b87a94"][i%4]} />
-              <rect x="45" y="110" width="50" height="80" fill={["#8b6a50","#6a8b50","#506a8b","#8b506a"][i%4]} />
-              <rect x="10" y="90" width="30" height="30" fill="white" opacity="0.6" />
-              <rect x="100" y="90" width="30" height="30" fill="white" opacity="0.6" />
+          <rect width="1920" height="488" fill="url(#vfsky)" />
+          <rect x="0" y="360" width="1920" height="128" fill="url(#vfgrass)" />
+          {[100,340,580,820,1060,1300,1540,1720].map((x,i)=>(
+            <g key={x} transform={`translate(${x},${240+(i%2)*20})`}>
+              <rect x="0" y="70" width="140" height="120" fill={["#e8d5c4","#d4e8c4","#c4d4e8","#e8c4d4"][i%4]}/>
+              <polygon points="70,0 -10,70 150,70" fill={["#b8947a","#8ab87a","#7a8ab8","#b87a94"][i%4]}/>
+              <rect x="45" y="110" width="50" height="80" fill={["#8b6a50","#6a8b50","#506a8b","#8b506a"][i%4]}/>
+              <rect x="10" y="90" width="30" height="30" fill="white" opacity="0.6"/>
+              <rect x="100" y="90" width="30" height="30" fill="white" opacity="0.6"/>
             </g>
           ))}
-          {[80, 300, 520, 760, 1000, 1240, 1480].map((x) => (
-             <g key={x} transform={`translate(${x}, 300)`}>
-               <rect x="12" y="60" width="6" height="40" fill="#7a5c3a" />
-               <circle cx="15" cy="50" r="30" fill="#4a8a30" opacity="0.9" />
-             </g>
-          ))}
         </svg>
-      </div>
 
-      {/* Gradient overlay for readability */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,31,61,0.85) 0%, rgba(10,31,61,0.3) 50%, rgba(10,31,61,0.1) 100%)" }} />
+        {/* NAV */}
+        <nav className="vf-hero-nav">
+          <Logo showText size={26} />
+          <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+            {user ? (
+              <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>
+                <UserIcon size={14}/> {user.username}
+              </button>
+            ) : (
+              <div style={{ display:'flex', gap:6 }}>
+                <button onClick={() => navigate('/login')}    style={{ padding:'7px 12px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.35)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Sign in</button>
+                <button onClick={() => navigate('/register')} style={{ padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'none', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Get started</button>
+              </div>
+            )}
+          </div>
+        </nav>
 
-      {/* ── TOP NAV — always at top of hero ── */}
-      <nav style={{ position:'relative', zIndex:20, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', flexWrap:'nowrap', gap:8 }}>
-        <Logo showText size={26} />
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-          {!isMobile && isLive !== null && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', borderRadius:99, background:'rgba(255,255,255,0.09)', border:'1px solid rgba(255,255,255,0.14)' }}>
-              <span style={{ width:6, height:6, borderRadius:'50%', background:isLive?'#34D399':'#FCD34D', display:'inline-block' }}/>
-              <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.55)', textTransform:'uppercase' as any, letterSpacing:'0.1em' }}>{isLive?'Live':'Local'}</span>
-            </div>
-          )}
-          {user ? (
-            <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>
-              <UserIcon size={14}/> {user.username}
-            </button>
-          ) : (
-            <div style={{ display:'flex', gap:6 }}>
-              <button onClick={() => navigate('/login')}    style={{ padding:'7px 12px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.35)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Sign in</button>
-              <button onClick={() => navigate('/register')} style={{ padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'none', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Get started</button>
-            </div>
-          )}
-        </div>
-      </nav>
+        {/* CONTENT */}
+        <div className="vf-hero-content">
+          <h1 className="vf-hero-h1">Rentals. Homes.<br/>Agents. Verified.</h1>
 
-      {/* ── CONTENT CONTAINER ── */}
-      <div style={{ position:'relative', zIndex:10, display:'flex', flexDirection:'column', alignItems:'center', paddingBottom: isMobile ? 24 : 32, paddingTop: isMobile ? 8 : 32 }}>
-        
-        <h1 style={{ fontSize: isMobile ? 26 : "clamp(32px, 5vw, 56px)", fontWeight: 700, color: "#FFFFFF", margin: isMobile ? "0 0 8px" : "0 0 12px", fontFamily: '"Ivar Headline", Georgia, serif', lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.6)", textAlign:'center', padding:'0 16px' }}>
-          Rentals. Homes.<br />Agents. Verified.
-        </h1>
-
-        {/* Hide long subtitle on mobile to save space */}
-        {!isMobile && (
-          <p style={{ color:'rgba(255,255,255,0.9)', fontSize:15, maxWidth:400, margin:'0 auto 20px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.8)', textAlign:'center', padding:'0 16px' }}>
+          <p className="vf-hero-sub">
             Zero ghost listings. {propertyCount > 0 ? `${propertyCount} verified` : 'Thousands of'} homes in Abuja.
           </p>
-        )}
 
-        {/* Tabs — smaller on mobile */}
-        <div style={{ display:'flex', justifyContent:'center', marginBottom: isMobile ? 12 : 18, marginTop: isMobile ? 12 : 0 }}>
-          <div style={{ display:'inline-flex', background:'rgba(10,31,61,0.6)', padding: isMobile ? 4 : 5, borderRadius:99, backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.2)' }}>
-            {(['Buy','Rent','Short-let']).map(tab => (
-              <button
-                key={tab}
-                onClick={() => setIntent(tab)}
-                style={{ padding: isMobile ? '7px 16px' : '8px 26px', borderRadius:99, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize: isMobile ? 13 : 14, transition:'all .2s', background: intent === tab ? '#fff' : 'transparent', color: intent === tab ? '#1B4FD8' : '#fff', boxShadow: intent === tab ? '0 4px 12px rgba(0,0,0,0.15)' : 'none' }}
-              >
-                {tab}
-              </button>
-            ))}
+          {/* Tabs */}
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
+            <div style={{ display:'inline-flex', background:'rgba(10,31,61,0.6)', padding:4, borderRadius:99, backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.2)' }}>
+              {(['Buy','Rent','Short-let']).map(tab => (
+                <button key={tab} onClick={() => setIntent(tab)} className="vf-hero-tabs-btn"
+                  style={{ padding:'8px 22px', borderRadius:99, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, transition:'all .2s', background: intent===tab?'#fff':'transparent', color: intent===tab?'#1B4FD8':'#fff', boxShadow: intent===tab?'0 4px 12px rgba(0,0,0,0.15)':'none' }}>
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div style={{ padding:'0 16px', width:'100%', maxWidth:820 }}>
-          <HeroSearch {...searchProps} />
-        </div>
+          {/* Full search bar — hidden on mobile via CSS */}
+          <div className="vf-hero-search-full" style={{ width:'100%', maxWidth:820, padding:'0 0' }}>
+            <HeroSearch {...searchProps} />
+          </div>
 
-        {/* Hide stats row on mobile */}
-        {!isMobile && (
-          <div style={{ display:'flex', justifyContent:'center', flexWrap:'wrap', gap:'6px 20px', marginTop:24 }}>
-            {[{n:propertyCount>0?`${propertyCount}+`:'0',l:'Verified listings'},{n:'17',l:'Districts'},{n:'100%',l:'Fraud-free'}].map((s,i,a) => (
+          {/* Simple mobile search — shown only on mobile via CSS */}
+          <div className="vf-hero-search-mobile" onClick={() => searchProps.onSearch()} style={{ width:'100%' }}>
+            <Search size={16} color="#9CA3AF" style={{ flexShrink:0 }} />
+            <input
+              value={searchProps.keyword}
+              onChange={e => searchProps.setKeyword(e.target.value)}
+              onKeyDown={e => e.key==='Enter' && searchProps.onSearch()}
+              placeholder="Search by district, type…"
+              style={{ flex:1, border:'none', outline:'none', background:'transparent', fontSize:14, color:'#111', fontFamily:"'DM Sans',sans-serif" }}
+            />
+            <button onClick={searchProps.onSearch} style={{ padding:'8px 16px', background:'#1B4FD8', color:'#fff', border:'none', borderRadius:10, fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>
+              Search
+            </button>
+          </div>
+
+          {/* Stats — hidden on mobile */}
+          <div className="vf-hero-stats">
+            {[{n:propertyCount>0?`${propertyCount}+`:'0',l:'Verified listings'},{n:'17',l:'Districts'},{n:'100%',l:'Fraud-free'}].map((s,i,a)=>(
               <React.Fragment key={s.l}>
                 <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                   <span style={{ fontFamily:"'Fraunces',serif", fontSize:18, fontWeight:500, color:'#fff' }}>{s.n}</span>
                   <span style={{ fontSize:12, color:'rgba(255,255,255,0.42)', fontWeight:500 }}>{s.l}</span>
                 </div>
-                {i < a.length-1 && <span style={{ color:'rgba(255,255,255,0.15)', fontSize:18, lineHeight:1 }}>·</span>}
+                {i<a.length-1 && <span style={{ color:'rgba(255,255,255,0.15)', fontSize:18 }}>·</span>}
               </React.Fragment>
             ))}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
 // ─── MAIN DASHBOARD ──────────────────────────────────────────────────────────
+
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
