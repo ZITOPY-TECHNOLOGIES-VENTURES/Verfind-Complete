@@ -6,6 +6,7 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt    = require('bcryptjs');
 const jwt       = require('jsonwebtoken');
 const crypto    = require('crypto');
+const path      = require('path');
 require('dotenv').config();
 
 const prisma = new PrismaClient();
@@ -789,27 +790,9 @@ app.get('/api/banks/setup', auth, agentOnly, async (req, res) => {
 });
 
 // ─── STATUS ───────────────────────────────────────────────────────────────────
-
-app.get('/', (req, res) => {
-  res.send(`
-    <html>
-      <head>
-        <title>Verifind API</title>
-        <style>
-          body { font-family: 'DM Sans', sans-serif; text-align: center; padding: 50px; color: #333; background-color: #F8F9FA; }
-          h1 { color: #1B4FD8; }
-          a { color: #1B4FD8; text-decoration: none; font-weight: bold; }
-          a:hover { text-decoration: underline; }
-        </style>
-      </head>
-      <body>
-        <h1>Verifind API is running 🚀</h1>
-        <p>This is the backend service for the Verifind application.</p>
-        <p><a href="/api/status">Check System Status</a></p>
-      </body>
-    </html>
-  `);
-});
+// ─── SERVE FRONTEND (PRODUCTION) ────────────────────────────────────────────────
+const frontendPath = path.join(__dirname, '../frontend/dist');
+app.use(express.static(frontendPath));
 
 app.get('/api/status', async (req, res) => {
   try {
@@ -818,6 +801,11 @@ app.get('/api/status', async (req, res) => {
   } catch {
     res.status(503).json({ status: 'running', version: '2.0.0', db: 'disconnected' });
   }
+});
+
+// React fallback routing MUST be after all API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
