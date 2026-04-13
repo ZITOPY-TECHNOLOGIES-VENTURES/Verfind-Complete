@@ -260,11 +260,13 @@ const BrowseHero: React.FC<{
   onSearch:()=>void;
 }> = ({ propertyCount, user, isLive, onModeChange, intent, setIntent, ...searchProps }) => {
   const navigate = useNavigate();
+  // Detect mobile via window width — only used for layout decisions
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   return (
-    <div style={{ position:'relative', height: 488, overflow:'hidden', borderBottom:'1px solid rgba(0,0,0,0.1)' }}>
+    <div style={{ position:'relative', minHeight: isMobile ? 'auto' : 488, borderBottom:'1px solid rgba(0,0,0,0.1)', overflow: 'visible' }}>
       {/* ── ZILLOW STYLE HERO BACKGROUND ── */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(135deg, #1B4FD8 0%, #0E3A6E 40%, #095D50 100%)" }}>
-        <svg viewBox="0 0 1920 488" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" opacity="0.45">
+        <svg viewBox="0 0 1920 488" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" opacity="0.45" style={{ position:'absolute', inset:0 }}>
           <rect width="1920" height="488" fill="url(#sky)" />
           <defs>
             <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -298,48 +300,51 @@ const BrowseHero: React.FC<{
       {/* Gradient overlay for readability */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(10,31,61,0.85) 0%, rgba(10,31,61,0.3) 50%, rgba(10,31,61,0.1) 100%)" }} />
 
-      {/* ── TOP NAV — absolute so it overlays the hero ── */}
-      <nav style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', position:'absolute', top:0, left:0, right:0, zIndex:20, flexWrap:'wrap', gap:8 }}>
+      {/* ── TOP NAV — always at top of hero ── */}
+      <nav style={{ position:'relative', zIndex:20, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', flexWrap:'nowrap', gap:8 }}>
         <Logo showText size={26} />
-        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          {isLive !== null && (
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
+          {!isMobile && isLive !== null && (
             <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 10px', borderRadius:99, background:'rgba(255,255,255,0.09)', border:'1px solid rgba(255,255,255,0.14)' }}>
-              <span style={{ width:6, height:6, borderRadius:'50%', background:isLive?'#34D399':'#FCD34D', display:'inline-block', boxShadow:isLive?'0 0 8px rgba(52,211,153,0.8)':'none' }}/>
+              <span style={{ width:6, height:6, borderRadius:'50%', background:isLive?'#34D399':'#FCD34D', display:'inline-block' }}/>
               <span style={{ fontSize:11, fontWeight:600, color:'rgba(255,255,255,0.55)', textTransform:'uppercase' as any, letterSpacing:'0.1em' }}>{isLive?'Live':'Local'}</span>
             </div>
           )}
           {user ? (
-            <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer' }}>
+            <button onClick={() => onModeChange('profile')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.12)', border:'1px solid rgba(255,255,255,0.22)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>
               <UserIcon size={14}/> {user.username}
             </button>
           ) : (
             <div style={{ display:'flex', gap:6 }}>
-              <button onClick={() => navigate('/login')}    style={{ padding:'7px 14px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.28)', color:'rgba(255,255,255,0.9)', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Sign in</button>
-              <button onClick={() => navigate('/register')} style={{ padding:'7px 14px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'none', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Get started</button>
+              <button onClick={() => navigate('/login')}    style={{ padding:'7px 12px', borderRadius:99, background:'transparent', border:'1px solid rgba(255,255,255,0.35)', color:'#fff', fontFamily:"'DM Sans',sans-serif", fontWeight:600, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Sign in</button>
+              <button onClick={() => navigate('/register')} style={{ padding:'7px 12px', borderRadius:99, background:'rgba(255,255,255,0.92)', border:'none', color:'#1B4FD8', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap' }}>Get started</button>
             </div>
           )}
         </div>
       </nav>
 
       {/* ── CONTENT CONTAINER ── */}
-      <div style={{ position:'relative', zIndex:10, height:'100%', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', paddingTop:60 }}>
+      <div style={{ position:'relative', zIndex:10, display:'flex', flexDirection:'column', alignItems:'center', paddingBottom: isMobile ? 24 : 32, paddingTop: isMobile ? 8 : 32 }}>
         
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 56px)", fontWeight: 700, color: "#FFFFFF", margin: "0 0 12px", fontFamily: '"Ivar Headline", Georgia, serif', lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.6)", textAlign:'center', padding:'0 16px' }}>
+        <h1 style={{ fontSize: isMobile ? 26 : "clamp(32px, 5vw, 56px)", fontWeight: 700, color: "#FFFFFF", margin: isMobile ? "0 0 8px" : "0 0 12px", fontFamily: '"Ivar Headline", Georgia, serif', lineHeight: 1.15, textShadow: "0 2px 12px rgba(0,0,0,0.6)", textAlign:'center', padding:'0 16px' }}>
           Rentals. Homes.<br />Agents. Verified.
         </h1>
-        
-        <p style={{ color:'rgba(255,255,255,0.9)', fontSize:15, maxWidth:400, margin:'0 auto 20px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.8)', textAlign:'center', padding:'0 16px' }}>
-          Zero ghost listings. {propertyCount > 0 ? `${propertyCount} verified` : 'Thousands of'} homes in Abuja.
-        </p>
 
-        {/* Zillow Style Tabs */}
-        <div style={{ display:'flex', justifyContent:'center', marginBottom:18 }}>
-          <div style={{ display:'inline-flex', background:'rgba(10,31,61,0.6)', padding:5, borderRadius:99, backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.2)' }}>
+        {/* Hide long subtitle on mobile to save space */}
+        {!isMobile && (
+          <p style={{ color:'rgba(255,255,255,0.9)', fontSize:15, maxWidth:400, margin:'0 auto 20px', lineHeight:1.6, textShadow:'0 1px 4px rgba(0,0,0,0.8)', textAlign:'center', padding:'0 16px' }}>
+            Zero ghost listings. {propertyCount > 0 ? `${propertyCount} verified` : 'Thousands of'} homes in Abuja.
+          </p>
+        )}
+
+        {/* Tabs — smaller on mobile */}
+        <div style={{ display:'flex', justifyContent:'center', marginBottom: isMobile ? 12 : 18, marginTop: isMobile ? 12 : 0 }}>
+          <div style={{ display:'inline-flex', background:'rgba(10,31,61,0.6)', padding: isMobile ? 4 : 5, borderRadius:99, backdropFilter:'blur(12px)', border:'1px solid rgba(255,255,255,0.2)' }}>
             {(['Buy','Rent','Short-let']).map(tab => (
               <button
                 key={tab}
                 onClick={() => setIntent(tab)}
-                style={{ padding:'8px 26px', borderRadius:99, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:14, transition:'all .3s cubic-bezier(0.4, 0, 0.2, 1)', background: intent === tab ? '#fff' : 'transparent', color: intent === tab ? '#1B4FD8' : '#fff', boxShadow: intent === tab ? '0 4px 12px rgba(0,0,0,0.15)' : 'none' }}
+                style={{ padding: isMobile ? '7px 16px' : '8px 26px', borderRadius:99, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize: isMobile ? 13 : 14, transition:'all .2s', background: intent === tab ? '#fff' : 'transparent', color: intent === tab ? '#1B4FD8' : '#fff', boxShadow: intent === tab ? '0 4px 12px rgba(0,0,0,0.15)' : 'none' }}
               >
                 {tab}
               </button>
@@ -351,17 +356,20 @@ const BrowseHero: React.FC<{
           <HeroSearch {...searchProps} />
         </div>
 
-        <div style={{ display:'flex', justifyContent:'center', flexWrap:'wrap', gap:'6px 20px', marginTop:24 }}>
-          {[{n:propertyCount>0?`${propertyCount}+`:'0',l:'Verified listings'},{n:'17',l:'Districts'},{n:'100%',l:'Fraud-free'}].map((s,i,a) => (
-            <React.Fragment key={s.l}>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <span style={{ fontFamily:"'Fraunces',serif", fontSize:18, fontWeight:500, color:'#fff' }}>{s.n}</span>
-                <span style={{ fontSize:12, color:'rgba(255,255,255,0.42)', fontWeight:500 }}>{s.l}</span>
-              </div>
-              {i < a.length-1 && <span style={{ color:'rgba(255,255,255,0.15)', fontSize:18, lineHeight:1 }}>·</span>}
-            </React.Fragment>
-          ))}
-        </div>
+        {/* Hide stats row on mobile */}
+        {!isMobile && (
+          <div style={{ display:'flex', justifyContent:'center', flexWrap:'wrap', gap:'6px 20px', marginTop:24 }}>
+            {[{n:propertyCount>0?`${propertyCount}+`:'0',l:'Verified listings'},{n:'17',l:'Districts'},{n:'100%',l:'Fraud-free'}].map((s,i,a) => (
+              <React.Fragment key={s.l}>
+                <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  <span style={{ fontFamily:"'Fraunces',serif", fontSize:18, fontWeight:500, color:'#fff' }}>{s.n}</span>
+                  <span style={{ fontSize:12, color:'rgba(255,255,255,0.42)', fontWeight:500 }}>{s.l}</span>
+                </div>
+                {i < a.length-1 && <span style={{ color:'rgba(255,255,255,0.15)', fontSize:18, lineHeight:1 }}>·</span>}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
