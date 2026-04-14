@@ -223,22 +223,27 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-y-auto"
+    <div
       style={{
-        padding: isMobile ? '12px' : '16px',
+        minHeight: '100vh',
+        minHeight: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? '16px' : '24px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 15%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 70% 50% at 80% 80%, rgba(15,23,42,0.9) 0%, transparent 60%),
           #050D1E
         `,
-        minHeight: '100dvh',
       }}>
 
       {/* Ambient glows */}
       <div className="fixed pointer-events-none" style={{ width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.14) 0%, transparent 70%)', top: '-140px', left: '-140px', filter: 'blur(60px)' }} />
       <div className="fixed pointer-events-none" style={{ width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', bottom: '-100px', right: '-100px', filter: 'blur(60px)' }} />
 
-      <div className="w-full relative z-10 my-auto" style={{ maxWidth: isMobile ? '100%' : '420px', ...cardStyle }}>
+      <div className="w-full relative z-10" style={{ maxWidth: isMobile ? '100%' : '420px', ...cardStyle }}>
         <div className="vf-reg-card" style={glassStyle}>
           {/* Shimmer */}
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 60%)', borderRadius: '32px' }} />

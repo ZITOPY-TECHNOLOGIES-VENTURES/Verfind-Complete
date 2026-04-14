@@ -92,9 +92,13 @@ const Login: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center overflow-y-auto"
       style={{
-        padding: isMobile ? '12px 12px' : '16px',
+        minHeight: '100vh',
+        minHeight: '100dvh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? '16px' : '24px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 60% 50% at 80% 70%, rgba(17,24,39,0.9) 0%, transparent 55%),
@@ -122,7 +126,7 @@ const Login: React.FC = () => {
           iOS 26 liquid glass — frosted, iridescent edge, specular highlight
           ══════════════════════════════════════ */}
       <div
-        className="relative w-full my-auto"
+        className="relative w-full"
         style={{
           maxWidth: isMobile ? '100%' : '400px',
           opacity:   ready ? 1 : 0,
