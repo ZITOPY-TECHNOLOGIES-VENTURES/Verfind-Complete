@@ -47,14 +47,15 @@ const KYC_STEPS = [
 ];
 
 export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProperty, onCreateListing }) => {
+  type AgentView = 'hub' | 'property' | 'new-listing' | 'kyc';
+  
+  const [currentView, setCurrentView] = useState<AgentView>('hub');
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [selectedProp, setSelectedProp] = useState<Property | null>(null);
-  const [showCreate, setShowCreate]     = useState(false);
   const [isUploading, setIsUploading]   = useState(false);
   const [walletBalance, setWalletBalance] = useState(450230);
   
-  const [showKyc, setShowKyc] = useState(false);
   const [kycStage, setKycStage] = useState(user.isKycVerified ? 4 : 0);
 
   const fetchProperties = async () => {
@@ -104,7 +105,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
   };
 
   const handlePropertyCreated = () => {
-    setShowCreate(false);
+    setCurrentView('hub');
     fetchProperties();
     if (onCreateListing) onCreateListing();
   };
@@ -112,7 +113,25 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-700">
       
-      {/* ── BRICK 1 & 8: Agent Hero & Wallet Quick Look ── */}
+      {/* ── BREADCRUMB NAVIGATION ── */}
+      {currentView !== 'hub' && (
+        <div className="flex items-center gap-2 mb-2 text-sm font-bold text-muted animate-in fade-in slide-in-from-top-2 duration-300">
+          <button onClick={() => { setCurrentView('hub'); setSelectedProp(null); }} className="hover:text-primary transition-colors flex items-center gap-1.5 focus:outline-none cursor-pointer">
+            <LayoutGrid size={16} /> Console Hub
+          </button>
+          <ChevronRight size={14} className="opacity-40" />
+          <span style={{ color: 'var(--text-primary)' }}>
+            {currentView === 'property' && selectedProp?.title}
+            {currentView === 'new-listing' && 'Create New Listing'}
+            {currentView === 'kyc' && 'Agent KYC Certification'}
+          </span>
+        </div>
+      )}
+
+      {/* ── HUB VIEW (Dashboard Main) ── */}
+      {currentView === 'hub' && (
+        <>
+          {/* ── BRICK 1 & 8: Agent Hero & Wallet Quick Look ── */}
       <section className="relative overflow-hidden p-8 rounded-[2.5rem]"
         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-lg)' }}>
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
@@ -132,7 +151,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
             <div className="text-center md:text-left">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 mb-1">
                 <h1 className="text-3xl font-black" style={{ color: 'var(--text-primary)' }}>{user.username}</h1>
-                {kycStage === 4 && <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">Certified Agent</span>}
+                {kycStage === 4 ? (
+                  <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">Certified Agent</span>
+                ) : (
+                  <button onClick={() => setCurrentView('kyc')} className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20 transition-colors cursor-pointer">Complete KYC</button>
+                )}
               </div>
               <p className="text-xs font-bold text-muted mb-4">Abuja HQ · ID #VF-{user._id.slice(0,6)}</p>
               <div className="flex items-center gap-4 text-xs font-black" style={{ color: 'var(--text-primary)' }}>
@@ -149,7 +172,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted">Escrow Balance</span>
              </div>
              <p className="text-2xl font-black mb-3" style={{ color: 'var(--text-primary)' }}>₦{walletBalance.toLocaleString()}</p>
-             <button onClick={() => setShowCreate(true)} className="w-full md:w-auto px-8 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+             <button onClick={() => setCurrentView('new-listing')} className="w-full md:w-auto px-8 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all cursor-pointer">
                 New Listing +
              </button>
           </div>
@@ -172,13 +195,13 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
             <div className="col-span-full p-20 text-center rounded-[3rem]" style={{ background: 'var(--bg-surface)', border: '1px dashed var(--border-color)' }}>
               <Building2 size={48} className="mx-auto mb-4 text-muted opacity-20" />
               <p className="font-bold text-lg mb-4 text-muted">Start by adding a property brick.</p>
-              <button onClick={() => setShowCreate(true)} className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest">Post First Listing</button>
+              <button onClick={() => setCurrentView('new-listing')} className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-sm uppercase tracking-widest cursor-pointer hover:scale-105 transition-all">Post First Listing</button>
             </div>
           ) : properties.map(p => {
             const currentIdx = PROPERTY_STAGES.indexOf(p.verificationStage || 'listing_created');
             const pct = Math.round(((currentIdx + 1) / PROPERTY_STAGES.length) * 100);
             return (
-              <div key={p._id} onClick={() => setSelectedProp(p)} className="group p-6 rounded-[2.5rem] cursor-pointer transition-all hover:bg-surface-alt border border-transparent hover:border-border-color bg-surface shadow-sm overflow-hidden relative">
+              <div key={p._id} onClick={() => { setSelectedProp(p); setCurrentView('property'); }} className="group p-6 rounded-[2.5rem] cursor-pointer transition-all hover:bg-surface-alt border border-transparent hover:border-border-color bg-surface shadow-sm overflow-hidden relative">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex gap-4">
                     <div className="w-14 h-14 rounded-2xl overflow-hidden bg-muted border border-border-color">{p.images?.[0] && <img src={p.images[0]} className="w-full h-full object-cover" alt="" />}</div>
@@ -199,14 +222,16 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
           })}
         </div>
       </section>
+        </>
+      )}
 
-      {/* ── BRICK 8: Verification Action Modal (with Costs) ── */}
-      {selectedProp && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="w-full max-w-xl rounded-[3rem] bg-surface border border-border-color shadow-2xl animate-in slide-in-from-bottom-5 duration-300 overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
+      {/* ── BREADCRUMB VIEW: Property Verification Action ── */}
+      {currentView === 'property' && selectedProp && (
+        <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="w-full rounded-[3rem] bg-surface border border-border-color shadow-sm overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
             <div className="p-10 border-b border-border-color flex items-center justify-between">
               <div><h3 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Lay the Next Brick</h3><p className="text-xs font-bold text-muted uppercase tracking-widest mt-1">{selectedProp.title}</p></div>
-              <button onClick={() => setSelectedProp(null)} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted"><X size={20} /></button>
+              <button onClick={() => { setCurrentView('hub'); setSelectedProp(null); }} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted cursor-pointer"><X size={20} /></button>
             </div>
             
             <div className="p-10 space-y-10">
@@ -254,8 +279,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
                              <p className="text-[10px] font-black uppercase text-muted tracking-widest">Wallet Balance</p>
                              <p className="text-sm font-bold text-primary">₦{walletBalance.toLocaleString()}</p>
                           </div>
-                       </div>
-                       <button onClick={handleMockUpload} disabled={isUploading} className="w-full py-5 rounded-[1.5rem] bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50">
+                        <button onClick={handleMockUpload} disabled={isUploading} className="w-full py-5 rounded-[1.5rem] bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50 cursor-pointer">
                           {isUploading ? <Loader2 size={24} className="animate-spin mx-auto" /> : 'Confirm & Pay Verification Fee'}
                        </button>
                     </div>
@@ -267,26 +291,27 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
         </div>
       )}
 
-      {/* ── CREATE MODAL ── */}
-      {showCreate && (
-        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[3rem] bg-surface border border-border-color shadow-2xl custom-scrollbar" style={{ background: 'var(--bg-surface)' }}>
-              <div className="p-10 border-b border-border-color flex items-center justify-between sticky top-0 bg-surface/80 backdrop-blur-xl z-20">
+      {/* ── BREADCRUMB VIEW: CREATE LISTING ── */}
+      {currentView === 'new-listing' && (
+        <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="w-full rounded-[3rem] bg-surface border border-border-color shadow-sm custom-scrollbar" style={{ background: 'var(--bg-surface)' }}>
+              <div className="p-10 border-b border-border-color flex items-center justify-between sticky top-0 bg-surface/90 backdrop-blur-xl z-20">
                 <div><h3 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>List Property</h3><p className="text-xs font-bold text-muted uppercase tracking-widest">Brick-by-brick verification starts here.</p></div>
-                <button onClick={() => setShowCreate(false)} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted"><X size={20} /></button>
+                <button onClick={() => setCurrentView('hub')} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted cursor-pointer"><X size={20} /></button>
               </div>
               <div className="p-10"><ListingForm onPropertyCreated={handlePropertyCreated} /></div>
            </div>
         </div>
       )}
 
-      {/* ── KYC MODAL ── */}
-      {showKyc && (
-        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="w-full max-w-lg rounded-[3rem] bg-surface border border-border-color shadow-2xl p-10 space-y-8" style={{ background: 'var(--bg-surface)' }}>
+      {/* ── BREADCRUMB VIEW: KYC ── */}
+      {currentView === 'kyc' && (
+        <div className="w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="w-full rounded-[3rem] bg-surface border border-border-color shadow-sm p-10 space-y-8" style={{ background: 'var(--bg-surface)' }}>
             <div className="flex items-center justify-between">
               <div><h3 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Agent KYC</h3><p className="text-xs font-bold text-muted uppercase tracking-widest">Earn your Abuja Trust Badge.</p></div>
-              <button onClick={() => setShowKyc(false)} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted"><X size={20} /></button>
+              <button onClick={() => setCurrentView('hub')} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted cursor-pointer"><X size={20} /></button>
+            </div>d"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               {KYC_STEPS.map((step, i) => {
@@ -299,7 +324,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
                   </div>
                 );
               })}
-              {kycStage < 4 ? <button onClick={handleKycProgress} disabled={isUploading} className="w-full py-5 mt-6 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] disabled:opacity-50">{isUploading ? <Loader2 size={24} className="animate-spin mx-auto" /> : 'Next Identity Brick'}</button> : <div className="p-10 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/20 text-center"><ShieldCheck size={64} className="text-emerald-500 mx-auto mb-6" /><p className="text-xl font-black text-emerald-600">Certified Agent</p><button onClick={() => setShowKyc(false)} className="mt-8 text-[11px] font-black uppercase tracking-[0.3em] text-primary">Return to Console</button></div>}
+              {kycStage < 4 ? <button onClick={handleKycProgress} disabled={isUploading} className="w-full py-5 mt-6 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] disabled:opacity-50 cursor-pointer">{isUploading ? <Loader2 size={24} className="animate-spin mx-auto" /> : 'Next Identity Brick'}</button> : <div className="p-10 rounded-[2.5rem] bg-emerald-500/5 border border-emerald-500/20 text-center"><ShieldCheck size={64} className="text-emerald-500 mx-auto mb-6" /><p className="text-xl font-black text-emerald-600">Certified Agent</p><button onClick={() => setCurrentView('hub')} className="mt-8 text-[11px] font-black uppercase tracking-[0.3em] text-primary cursor-pointer">Return to Console</button></div>}
             </div>
           </div>
         </div>
