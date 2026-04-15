@@ -261,11 +261,11 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
                        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><Zap size={24} /></div>
                        <div>
                           <p className="font-black text-lg">Verification Action</p>
-                          <p className="text-xs font-bold text-muted">Upload and process {PROPERTY_STEPS[PROPERTY_STAGES.indexOf(selectedProp.verificationStage)]?.label}</p>
+                          <p className="text-xs font-bold text-muted">Upload and process {PROPERTY_STEPS[PROPERTY_STAGES.indexOf(selectedProp.verificationStage || 'listing_created')]?.label}</p>
                        </div>
                     </div>
                     <ul className="space-y-3">
-                       {PROPERTY_STEPS[PROPERTY_STAGES.indexOf(selectedProp.verificationStage)]?.req?.map(r => <li key={r} className="text-sm font-bold text-secondary flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-primary" /> {r}</li>)}
+                       {PROPERTY_STEPS[PROPERTY_STAGES.indexOf(selectedProp.verificationStage || 'listing_created')]?.req?.map(r => <li key={r} className="text-sm font-bold text-secondary flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-primary" /> {r}</li>)}
                     </ul>
                     
                     {/* COST SECTION */}
@@ -279,7 +279,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
                              <p className="text-[10px] font-black uppercase text-muted tracking-widest">Wallet Balance</p>
                              <p className="text-sm font-bold text-primary">₦{walletBalance.toLocaleString()}</p>
                           </div>
-                        <button onClick={handleMockUpload} disabled={isUploading} className="w-full py-5 rounded-[1.5rem] bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50 cursor-pointer">
+                       </div>
+                       <button onClick={handleMockUpload} disabled={isUploading} className="w-full py-5 rounded-[1.5rem] bg-primary text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all disabled:opacity-50 cursor-pointer">
                           {isUploading ? <Loader2 size={24} className="animate-spin mx-auto" /> : 'Confirm & Pay Verification Fee'}
                        </button>
                     </div>
@@ -311,7 +312,6 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
             <div className="flex items-center justify-between">
               <div><h3 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Agent KYC</h3><p className="text-xs font-bold text-muted uppercase tracking-widest">Earn your Abuja Trust Badge.</p></div>
               <button onClick={() => setCurrentView('hub')} className="p-3 rounded-full hover:bg-surface-alt transition-colors text-muted cursor-pointer"><X size={20} /></button>
-            </div>d"><X size={20} /></button>
             </div>
             <div className="space-y-4">
               {KYC_STEPS.map((step, i) => {
@@ -329,6 +329,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
           </div>
         </div>
       )}
+
 
     </div>
   );
