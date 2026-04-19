@@ -96,6 +96,7 @@ const Login: React.FC = () => {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'flex-end',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 60% 50% at 80% 70%, rgba(17,24,39,0.9) 0%, transparent 55%),
@@ -122,7 +123,7 @@ const Login: React.FC = () => {
           THE SINGLE GLASS CARD
           iOS 26 liquid glass — frosted, iridescent edge, specular highlight
           ══════════════════════════════════════ */}
-      <div style={{ flex: 1 }} />
+    
 
       <div style={{ padding: isMobile ? '16px' : '24px', width: '100%' }}>
         <div
@@ -291,7 +292,7 @@ const Login: React.FC = () => {
       </div>
       </div>
 
-      <div style={{ flex: 1 }} />
+    
     </div>
   );
 };
