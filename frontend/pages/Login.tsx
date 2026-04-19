@@ -95,8 +95,7 @@ const Login: React.FC = () => {
       style={{
         minHeight: '100dvh',
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+        flexDirection: 'column',
         padding: isMobile ? '16px' : '24px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
@@ -127,6 +126,7 @@ const Login: React.FC = () => {
       <div
         className="relative w-full"
         style={{
+          margin: 'auto',
           maxWidth: isMobile ? '100%' : '400px',
           opacity:   ready ? 1 : 0,
           transform: ready ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
@@ -225,7 +225,7 @@ const Login: React.FC = () => {
 
             {/* Forgot */}
             <div className="flex justify-end">
-              <button type="button" className="text-[11px] font-bold"
+              <button type="button" onClick={() => navigate('/forgot-password')} className="text-[11px] font-bold"
                 style={{ color: 'rgba(147,197,253,0.8)', background: 'none', border: 'none', cursor: 'pointer' }}>
                 Forgot password?
               </button>
@@ -265,7 +265,7 @@ const Login: React.FC = () => {
           <p className="text-center text-[12px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
             No account?{' '}
             <Link
-              to={`/register${listingId ? `?returnTo=${encodeURIComponent(returnTo)}&listingId=${listingId}&reason=${reason || ''}` : ''}`}
+              to={`/register?returnTo=${encodeURIComponent(returnTo)}${listingId ? `&listingId=${listingId}&reason=${reason || ''}` : ''}`}
               className="font-black"
               style={{ color: '#93C5FD', textDecoration: 'none' }}
               onMouseEnter={e => (e.currentTarget as HTMLElement).style.textDecoration = 'underline'}
