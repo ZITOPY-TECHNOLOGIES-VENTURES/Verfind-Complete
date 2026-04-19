@@ -289,6 +289,7 @@ const Login: React.FC = () => {
           </button>
         </div>
       </div>
+      </div>
 
       <div style={{ flex: 1 }} />
     </div>
