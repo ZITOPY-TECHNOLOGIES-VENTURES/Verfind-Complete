@@ -228,6 +228,7 @@ const Register: React.FC = () => {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
+        justifyContent: 'flex-end',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 15%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 70% 50% at 80% 80%, rgba(15,23,42,0.9) 0%, transparent 60%),
@@ -239,7 +240,7 @@ const Register: React.FC = () => {
       <div className="fixed pointer-events-none" style={{ width: 560, height: 560, borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.14) 0%, transparent 70%)', top: '-140px', left: '-140px', filter: 'blur(60px)' }} />
       <div className="fixed pointer-events-none" style={{ width: 420, height: 420, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', bottom: '-100px', right: '-100px', filter: 'blur(60px)' }} />
 
-      <div style={{ flex: 1 }} />
+    
 
       <div style={{ padding: isMobile ? '16px' : '24px', width: '100%' }}>
         <div className="w-full relative z-10" style={{ margin: '0 auto', maxWidth: isMobile ? '100%' : '420px', ...cardStyle }}>
@@ -546,7 +547,7 @@ const Register: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ flex: 1 }} />
+    
     </div>
   );
 };
