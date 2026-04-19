@@ -96,7 +96,6 @@ const Login: React.FC = () => {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        padding: isMobile ? '16px' : '24px',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 60% 50% at 80% 70%, rgba(17,24,39,0.9) 0%, transparent 55%),
@@ -123,11 +122,14 @@ const Login: React.FC = () => {
           THE SINGLE GLASS CARD
           iOS 26 liquid glass — frosted, iridescent edge, specular highlight
           ══════════════════════════════════════ */}
-      <div
-        className="relative w-full"
-        style={{
-          margin: 'auto',
-          maxWidth: isMobile ? '100%' : '400px',
+      <div style={{ flex: 1 }} />
+
+      <div style={{ padding: isMobile ? '16px' : '24px', width: '100%' }}>
+        <div
+          className="relative w-full"
+          style={{
+            margin: '0 auto',
+            maxWidth: isMobile ? '100%' : '400px',
           opacity:   ready ? 1 : 0,
           transform: ready ? 'translateY(0) scale(1)' : 'translateY(24px) scale(0.97)',
           transition: 'opacity 0.45s cubic-bezier(0.34,1.26,0.64,1), transform 0.45s cubic-bezier(0.34,1.26,0.64,1)',
@@ -286,8 +288,9 @@ const Login: React.FC = () => {
             ← Continue browsing without signing in
           </button>
         </div>
-
       </div>
+
+      <div style={{ flex: 1 }} />
     </div>
   );
 };
