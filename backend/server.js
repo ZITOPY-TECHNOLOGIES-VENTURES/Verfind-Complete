@@ -17,7 +17,7 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const sendOtpEmail = async (to, name, otp) => {
   const BREVO_KEY = process.env.BREVO_API_KEY;
-  const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@verifind.ng';
+  const FROM_EMAIL = process.env.EMAIL_FROM || 'hello@getverifind.com';
   const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
 
   if (!BREVO_KEY) {
@@ -67,7 +67,7 @@ const sendOtpEmail = async (to, name, otp) => {
 
 const sendPaymentEmail = async (to, subject, message) => {
   const BREVO_KEY  = process.env.BREVO_API_KEY;
-  const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@verifind.ng';
+  const FROM_EMAIL = process.env.EMAIL_FROM || 'hello@getverifind.com';
   const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
   if (!BREVO_KEY) {
     console.error('❌ BREVO_API_KEY is missing. Email delivery failed.');
