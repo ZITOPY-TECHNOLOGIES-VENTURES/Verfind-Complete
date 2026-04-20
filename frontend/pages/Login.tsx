@@ -204,6 +204,7 @@ const Login: React.FC = () => {
               <input
                 type="email" name="email" value={formData.email}
                 onChange={handleChange} required placeholder="Email address"
+                autoComplete="email"
                 style={inputBase} onFocus={onFocus} onBlur={onBlur}
               />
             </div>
@@ -216,6 +217,7 @@ const Login: React.FC = () => {
                 type={showPass ? 'text' : 'password'} name="password"
                 value={formData.password} onChange={handleChange}
                 required placeholder="Password"
+                autoComplete="current-password"
                 style={{ ...inputBase, paddingRight: '44px' }}
                 onFocus={onFocus} onBlur={onBlur}
               />
