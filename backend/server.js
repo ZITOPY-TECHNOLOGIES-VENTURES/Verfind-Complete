@@ -31,19 +31,17 @@ const sendOtpEmail = async (to, name, otp) => {
       to:          [{ email: to, name }],
       subject:     `Your Verifind verification code is ${otp}`,
       htmlContent: `
-        <div style="font-family:'Inter',system-ui,sans-serif;max-width:500px;margin:0 auto;padding:40px 32px;background:#050D1E;border-radius:24px;border:1px solid #1e293b">
+        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:40px 32px;background:#050D1E;border-radius:12px;border:1px solid #1e293b">
           <div style="text-align:center;margin-bottom:32px">
-            <div style="width:48px;height:48px;background:linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);border-radius:12px;margin:0 auto 20px;line-height:48px;color:#ffffff;font-size:24px;font-weight:900;letter-spacing:-1px">
-              V
-            </div>
-            <h1 style="font-size:24px;font-weight:800;color:#ffffff;margin:0 0 8px">Verify your identity</h1>
+            <div style="width:48px;height:48px;background:#3B82F6;border-radius:12px;margin:0 auto 20px;line-height:48px;color:#ffffff;font-size:24px;font-weight:bold;">V</div>
+            <h1 style="font-size:24px;font-weight:bold;color:#ffffff;margin:0 0 8px">Verify your identity</h1>
             <p style="color:#94a3b8;font-size:15px;margin:0;line-height:1.5">Hi ${name}, use the secure code below to access your Verifind account.</p>
           </div>
-          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px;text-align:center;margin-bottom:24px">
-            <div style="font-size:48px;font-weight:900;letter-spacing:0.25em;color:#60A5FA;font-family:monospace;text-shadow:0 0 20px rgba(96,165,250,0.4)">${otp}</div>
-            <p style="font-size:13px;color:#64748b;margin:16px 0 0;font-weight:500">Code expires in <strong style="color:#94a3b8">10 minutes</strong></p>
+          <div style="background:#0a1226;border:2px dashed #1e293b;border-radius:8px;padding:32px;text-align:center;margin-bottom:24px">
+            <div style="font-size:42px;font-weight:bold;letter-spacing:8px;color:#60A5FA;font-family:monospace;">${otp}</div>
+            <p style="font-size:13px;color:#64748b;margin:16px 0 0;">Code expires in <strong style="color:#94a3b8">10 minutes</strong></p>
           </div>
-          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0" />
+          <hr style="border:none;border-top:1px solid #1e293b;margin:24px 0" />
           <p style="font-size:12px;color:#475569;text-align:center;margin:0;line-height:1.5">If you didn't request this code, you can safely ignore this email.<br/>Secure Real Estate, verified by Verifind.</p>
         </div>
       `,
@@ -826,6 +824,12 @@ app.get('/api/status', async (req, res) => {
 
 // React fallback routing MUST be after all API routes
 app.get('*', (req, res) => {
+  // If the browser is asking for an asset that doesn't exist, don't return index.html
+  // Otherwise the browser throws "Strict MIME type checking" CSS errors!
+  if (req.path.match(/\.(js|css|png|jpg|jpeg|svg|ico|json|map)$/)) {
+    return res.status(404).send('Not found');
+  }
+
   res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
     if (err) {
       res.status(500).send(`
