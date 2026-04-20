@@ -228,7 +228,7 @@ const Register: React.FC = () => {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 15%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 70% 50% at 80% 80%, rgba(15,23,42,0.9) 0%, transparent 60%),

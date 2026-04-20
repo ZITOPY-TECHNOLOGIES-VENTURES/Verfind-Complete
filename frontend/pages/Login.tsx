@@ -96,7 +96,7 @@ const Login: React.FC = () => {
         minHeight: '100dvh',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'flex-end',
+        justifyContent: 'center',
         background: `
           radial-gradient(ellipse 80% 60% at 20% 20%, rgba(30,58,138,0.55) 0%, transparent 60%),
           radial-gradient(ellipse 60% 50% at 80% 70%, rgba(17,24,39,0.9) 0%, transparent 55%),
