@@ -29,17 +29,22 @@ const sendOtpEmail = async (to, name, otp) => {
     const body = {
       sender:      { name: FROM_NAME, email: FROM_EMAIL },
       to:          [{ email: to, name }],
-      subject:     `${otp} is your Verifind verification code`,
+      subject:     `Your Verifind verification code is ${otp}`,
       htmlContent: `
-        <div style="font-family:'DM Sans',sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#F5F2ED;border-radius:20px">
-          <div style="text-align:center;margin-bottom:28px">
-            <h1 style="font-size:20px;font-weight:700;color:#111827;margin:12px 0 4px">Verify your email</h1>
-            <p style="color:#6B7280;font-size:14px;margin:0">Hi ${name}, here's your Verifind verification code</p>
+        <div style="font-family:'Inter',system-ui,sans-serif;max-width:500px;margin:0 auto;padding:40px 32px;background:#050D1E;border-radius:24px;border:1px solid #1e293b">
+          <div style="text-align:center;margin-bottom:32px">
+            <div style="width:48px;height:48px;background:linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);border-radius:12px;margin:0 auto 20px;line-height:48px;color:#ffffff;font-size:24px;font-weight:900;letter-spacing:-1px">
+              V
+            </div>
+            <h1 style="font-size:24px;font-weight:800;color:#ffffff;margin:0 0 8px">Verify your identity</h1>
+            <p style="color:#94a3b8;font-size:15px;margin:0;line-height:1.5">Hi ${name}, use the secure code below to access your Verifind account.</p>
           </div>
-          <div style="background:#fff;border-radius:16px;padding:28px;text-align:center;margin-bottom:20px">
-            <div style="font-size:42px;font-weight:800;letter-spacing:0.2em;color:#1B4FD8;font-family:monospace">${otp}</div>
-            <p style="font-size:12px;color:#9CA3AF;margin:12px 0 0">Expires in <strong>10 minutes</strong></p>
+          <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px;text-align:center;margin-bottom:24px">
+            <div style="font-size:48px;font-weight:900;letter-spacing:0.25em;color:#60A5FA;font-family:monospace;text-shadow:0 0 20px rgba(96,165,250,0.4)">${otp}</div>
+            <p style="font-size:13px;color:#64748b;margin:16px 0 0;font-weight:500">Code expires in <strong style="color:#94a3b8">10 minutes</strong></p>
           </div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0" />
+          <p style="font-size:12px;color:#475569;text-align:center;margin:0;line-height:1.5">If you didn't request this code, you can safely ignore this email.<br/>Secure Real Estate, verified by Verifind.</p>
         </div>
       `,
     };
@@ -52,12 +57,13 @@ const sendOtpEmail = async (to, name, otp) => {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      console.error('❌ Brevo Error:', errData);
+      console.error('❌ Brevo HTTP Error:', errData);
+      return false; // Crucial fix: return false on failure!
     }
-    return true;
+    return true; // Successfully delivered via Brevo
   } catch (err) {
-    console.error('❌ Email Error:', err.message);
-    return true;
+    console.error('❌ Brevo Network Error:', err.message);
+    return false; // Crucial fix: return false on crash!
   }
 };
 
