@@ -410,9 +410,19 @@ app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
       }
     });
 
-    await sendOtpEmail(emailClean, username.trim(), otp);
+    const emailSent = await sendOtpEmail(emailClean, username.trim(), otp);
+    
+    if (!emailSent) {
+      // If we couldn't send the email (missing API key or Brevo failure)
+      return res.status(500).json({ 
+        sent: false, 
+        message: 'Failed to send verification email. Please check server email delivery settings.' 
+      });
+    }
+
     res.json({ 
       sent: true, 
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined, // Useful if the user tests without Mailer
       message: `Verification code sent to ${emailClean}`
     });
   } catch (err) { serverError(res, err); }
@@ -486,6 +496,11 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     const otp = generateOTP();
     otpStore.set(email, { otp, expires: Date.now() + 600000, purpose: 'reset' });
+    
+    if (user) {
+      await sendOtpEmail(email, user.username || 'User', otp);
+    }
+    
     res.json({ message: 'If an account exists, a reset code was sent' });
   } catch (err) { serverError(res, err); }
 });
