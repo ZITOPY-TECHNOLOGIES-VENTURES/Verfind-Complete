@@ -2,144 +2,181 @@
 
 > Nigeria's first fully verified real estate marketplace — Serving Abuja, FCT.
 
-![Verifind](https://img.shields.io/badge/Status-Active-10B981?style=flat-square) ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)
+![Status](https://img.shields.io/badge/Status-Active-10B981?style=flat-square) ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react) ![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=flat-square&logo=node.js) ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)
 
-Verifind connects tenants with verified agents and verified property listings across Abuja's key districts. Every listing undergoes a **4-stage AGIS verification** pipeline before being published, and all payments are protected through **Paystack-powered escrow**.
+Verifind connects tenants with verified agents and verified property listings across Abuja's key districts. Every listing undergoes a **5-stage verification pipeline** before being published, and all payments are protected through **Paystack-powered escrow**.
+
+**Live URL:** https://verfind-production.onrender.com
 
 ---
 
-## ✨ Key Features
+## Tech Stack
 
-### 🏠 Zillow-Inspired Homepage
-- Animated search bar with typewriter suggestions
-- Rent / Buy / Sell mode tabs
-- Interactive district grid with 12 Abuja districts (Maitama, Asokoro, Guzape, Jabi…)
-- RTB (Rent-Buy-Sell) action cards
-- Fully responsive — hamburger menu on mobile, stacking grids on tablet/phone
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, Framer Motion |
+| **Backend** | Node.js, Express.js, Prisma ORM |
+| **Database** | PostgreSQL (hosted on Render) |
+| **Payments** | Paystack (escrow, transfers, recipient setup) |
+| **Auth** | JWT, bcrypt, OTP via email |
+| **Email** | Brevo (transactional email REST API) |
+| **Deployment** | Render (monorepo — backend serves frontend static build) |
 
-### 🔒 4-Stage Verification Pipeline
+---
+
+## Architecture
+
+```
+Render Web Service
+├── backend/server.js          Express API + serves frontend/dist as static
+├── frontend/dist/             Built React SPA (served by Express)
+└── backend/prisma/schema.prisma  PostgreSQL schema via Prisma
+
+Routes:
+  GET/POST  /api/auth/*         Auth (OTP register, login, password reset)
+  GET/POST  /api/properties/*   Property CRUD + verification pipeline
+  POST      /api/payments/*     Paystack escrow + webhook
+  GET/POST  /api/banks/*        Agent bank setup (Paystack recipients)
+  GET       /api/status         Health check
+```
+
+---
+
+## Key Features
+
+### 5-Stage Verification Pipeline
 | Stage | Description |
 |-------|-------------|
 | 1. Listing Created | Agent submits property details |
 | 2. Documents Uploaded | C-of-O, survey plan, agent licence |
-| 3. Legal Title Search | Cross-checked against AGIS database |
-| 4. Physical Site Audit | Certified inspector visits property |
-| ✅ **Abuja True Verified™** | Badge awarded, listing goes live |
+| 3. Agent Vetted | Agent credentials verified |
+| 4. Inspection Scheduled | Physical site visit booked |
+| 5. Verified | Abuja True Verified™ badge awarded |
 
-### 💰 Escrow Payment System
+### Escrow Payment System
 - Paystack integration for secure fund holding
-- Funds released to agent only after tenant inspection
-- Bank account resolution and transfer recipient setup
-- Full transaction history and wallet view
+- Funds auto-released to agent after configurable hold period (default 48h)
+- Bank account resolution and Paystack transfer recipient setup
+- Full transaction history per user
 
-### 👤 Role-Based Authentication
-- **Tenant**: Browse, save, book inspections, escrow payments
-- **Agent**: List properties, upload documents, track verification, receive payouts
-- JWT-based auth with OTP verification
-- Offline Mock Engine for development without backend
-
-### 🎨 Premium UI
-- Liquid Glass design system with dark/light/auto themes
-- AI Chat FAB (floating action button)
-- Saved Homes FAB with edge-snapping
-- Fraunces + DM Sans typography
+### Role-Based Auth
+- **Tenant**: Browse, save, book inspections, make escrow payments
+- **Agent**: List properties, upload docs, track verification, receive payouts
+- **Admin**: Platform oversight (in progress)
+- JWT tokens (7-day expiry), OTP email verification on registration
 
 ---
 
-## 🏗 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, TypeScript, Vite, Lucide React |
-| **Backend** | Node.js, Express.js, MongoDB (Mongoose) |
-| **Payments** | Paystack (escrow, transfers, recipients) |
-| **Auth** | JWT, bcrypt, Helmet, Rate Limiting |
-| **Email** | Resend API |
-| **Deployment** | Vercel (frontend), Render/Railway (backend) |
-
----
-
-## 🏛 Architecture
-
-```
-┌──────────────────────────────────────────────────────┐
-│            VERIFIND PLATFORM                         │
-│                                                      │
-│  Frontend (React + Vite)                             │
-│    /              → Home (Zillow-style landing)      │
-│    /dashboard     → Dashboard (listings, map, FABs)  │
-│    /login         → AuthFlow (Login/Register/Reset)  │
-│                                                      │
-│  Backend (Express + MongoDB)                         │
-│    GET  /api/properties                              │
-│    POST /api/properties/:id/verify                   │
-│    GET  /api/banks                                   │
-│    POST /api/banks/resolve                           │
-│    POST /api/banks/setup                             │
-│    GET  /api/chat (AI assistant)                     │
-│                                                      │
-│  Verification Pipeline:                              │
-│    listing → docs → title_search → site_audit → ✅   │
-│                                                      │
-│  Trust: REDAN / NIESV certified agents               │
-│  Location: Abuja, FCT, Nigeria                       │
-└──────────────────────────────────────────────────────┘
-```
-
----
-
-## 🚀 Getting Started
+## Local Development
 
 ### Prerequisites
 - Node.js v18+
-- MongoDB (local or Atlas URI)
+- PostgreSQL (local or remote)
 
-### Backend
+### 1. Clone & install
 ```bash
-cd backend
-npm install
-# Create .env file (see below)
-npm run dev
+git clone https://github.com/ZITOPY-TECHNOLOGIES-VENTURES/Verfind-Complete.git
+cd Verfind-Complete
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
-**`.env` configuration:**
+### 2. Backend `.env`
+Create `backend/.env`:
 ```env
 PORT=5000
-MONGO_URI=mongodb://localhost:27017/verifind
-JWT_SECRET=your_super_secret_jwt_key
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+DATABASE_URL=postgresql://user:password@localhost:5432/verifind
+JWT_SECRET=your_strong_random_secret_here
 NODE_ENV=development
 
-# Optional
-# RESEND_API_KEY=
-# EMAIL_FROM=
-# PAYSTACK_SECRET_KEY=
+# Email (Brevo REST API key — not SMTP credentials)
+BREVO_API_KEY=xkeysib-...
+EMAIL_FROM=hello@getverifind.com
+EMAIL_FROM_NAME=Verifind
+
+# Payments
+PAYSTACK_SECRET_KEY=sk_test_...
+
+# CORS (comma-separated, no trailing slash)
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Paystack callback redirect
+FRONTEND_URL=http://localhost:5173
 ```
 
-### Frontend
+### 3. Database setup
 ```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:3000
+cd backend
+npx prisma migrate deploy
+```
+
+### 4. Run
+```bash
+# Terminal 1 — backend
+cd backend && npm run dev
+
+# Terminal 2 — frontend
+cd frontend && npm run dev
+# → http://localhost:5173
 ```
 
 ---
 
-## 📜 Scripts
+## Render Deployment
 
-| Script | Description |
-|--------|-------------|
-| `npm run dev` (backend) | Starts Express with nodemon |
-| `npm start` (backend) | Production server |
-| `npm run dev` (frontend) | Vite dev server |
-| `npm run build` (frontend) | Production build |
-| `npm run preview` (frontend) | Preview production build |
+The app is a monorepo deployed as a single Render Web Service. The backend builds the frontend and serves it as static files.
+
+**Build Command:**
+```
+cd backend && npm install && npx prisma generate && cd ../frontend && npm install && npm run build
+```
+
+**Start Command:**
+```
+cd backend && node server.js
+```
+
+**Required Render Environment Variables:**
+```
+DATABASE_URL
+JWT_SECRET
+BREVO_API_KEY
+EMAIL_FROM=hello@getverifind.com
+EMAIL_FROM_NAME=Verifind
+PAYSTACK_SECRET_KEY
+ALLOWED_ORIGINS=https://verfind-production.onrender.com
+FRONTEND_URL=https://verfind-production.onrender.com
+NODE_ENV=production
+RELEASE_HOURS=48
+```
 
 ---
 
-## 📄 Legal
+## Contributing (Junior Dev Workflow)
 
-**Verifind Ltd** — Registered under CAMA 2020 with the Corporate Affairs Commission (CAC), Nigeria. RC Number pending.
+Branch protection is active on `main`. Direct pushes are restricted to project leads.
 
-© 2026 Verifind Technologies Ltd. Abuja, FCT, Nigeria.
+1. Create a feature branch: `git checkout -b feature/your-feature-name`
+2. Make your changes
+3. Push your branch: `git push origin feature/your-feature-name`
+4. Open a Pull Request on GitHub — do NOT push directly to `main`
+5. A lead will review and merge
+
+---
+
+## Scripts
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| Backend dev | `cd backend && npm run dev` | nodemon auto-restart |
+| Backend prod | `cd backend && npm start` | production server |
+| Frontend dev | `cd frontend && npm run dev` | Vite dev server |
+| Frontend build | `cd frontend && npm run build` | production build |
+| DB migrate | `cd backend && npm run migrate` | apply Prisma migrations |
+
+---
+
+## Legal
+
+**Verifind Ltd** — Abuja, FCT, Nigeria.
+© 2026 Verifind Technologies Ltd. All rights reserved.
