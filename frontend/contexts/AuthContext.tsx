@@ -57,8 +57,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   ): Promise<{ sent: boolean; message: string; devOtp?: string }> => {
     try {
       const res = await api.post('/api/auth/send-otp', { username, email, password, role }) as any;
+
+      if (!res.success) {
+        return { sent: false, message: res.message || 'Failed to send verification code' };
+      }
+
       if (res.data?.devOtp) {
-        console.log('%c[DEV] OTP Generated: ' + res.data.devOtp, 'background: #2563EB; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+        console.log('%c[DEV] OTP: ' + res.data.devOtp, 'background: #2563EB; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
       }
       return { sent: true, message: res.data?.message || 'Code sent', devOtp: res.data?.devOtp };
     } catch (err: any) {

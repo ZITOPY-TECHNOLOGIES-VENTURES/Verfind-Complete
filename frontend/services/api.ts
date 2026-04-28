@@ -75,7 +75,10 @@ function getImagesForDistrict(district: string): string[] {
 export const getUserId = () => {
   const userStr = localStorage.getItem('vf_user');
   if (userStr) {
-    try { return JSON.parse(userStr)._id; } catch (e) {}
+    try {
+      const u = JSON.parse(userStr);
+      return u._id || u.id || 'guest';
+    } catch (e) {}
   }
   return 'guest';
 };
@@ -95,12 +98,24 @@ class BridgeApi {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        headers['x-user-id'] = user._id;
+        headers['x-user-id'] = user._id || user.id;
         headers['x-user-name'] = user.username;
         headers['x-user-role'] = user.role;
       } catch (e) {}
     }
     return headers;
+  }
+
+  // Maps id → _id on any object/array coming from the real backend
+  private normalizeId(data: any): any {
+    if (Array.isArray(data)) return data.map(item => this.normalizeId(item));
+    if (data && typeof data === 'object') {
+      const out = { ...data };
+      if (out.id && !out._id) out._id = out.id;
+      if (out.user) out.user = this.normalizeId(out.user);
+      return out;
+    }
+    return data;
   }
 
   private async bridgeRequest<T>(
@@ -117,11 +132,15 @@ class BridgeApi {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          return { data, success: true, status: response.status };
+          const raw = await response.json();
+          return { data: this.normalizeId(raw), success: true, status: response.status };
         }
-        console.warn(`Backend error ${response.status}, falling back to Mock Engine`);
+
+        // Backend responded with an error — surface it, don't silently mock
+        const errData = await response.json().catch(() => ({}));
+        return { success: false, status: response.status, message: (errData as any).message || 'Request failed', data: errData as any };
       } catch (error) {
+        // Only fall back to mock on network failure (backend unreachable)
         console.warn('Live bridge: network failed, falling back to Mock Engine');
       }
     }
