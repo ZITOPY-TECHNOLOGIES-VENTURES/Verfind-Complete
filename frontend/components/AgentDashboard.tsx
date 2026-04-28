@@ -61,8 +61,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const res = await api.get<Property[]>('/properties');
-      if (res.data) setProperties(res.data.filter(p => p.agentId === user._id));
+      const res = await api.get<Property[]>('/api/properties');
+      if (res.data) setProperties(res.data.filter(p => p.agentId === (user._id || (user as any).id)));
     } catch { /* empty */ } finally { setLoading(false); }
   };
 
@@ -88,7 +88,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({ user, onViewProp
     
     if (cost > 0) setWalletBalance(prev => prev - cost);
 
-    const res = await api.post(`/properties/${selectedProp._id}/verify`, {});
+    const res = await api.post(`/api/properties/${selectedProp._id}/verify`, {});
     if (res.success && res.data) {
       const updated = res.data as Property;
       setProperties(prev => prev.map(p => p._id === updated._id ? updated : p));

@@ -1,7 +1,7 @@
 import { Property, ApiResponse, VerificationStage, Task, PropertyFilters } from '../types.ts';
 import { db } from './db.ts';
 
-const BACKEND_URL = (import.meta as any).env?.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
+const BACKEND_URL = (import.meta as any).env?.VITE_API_URL ?? (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
 
 const DISTRICT_COORDS_SEED: Record<string, { lat: number, lng: number }> = {
   'Central Area': { lat: 9.053, lng: 7.489 },
