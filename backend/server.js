@@ -71,8 +71,8 @@ async function sendEmail(to, subject, htmlContent) {
     },
     body: JSON.stringify({
       sender: {
-        name: 'Verifind',
-        email: process.env.BREVO_SENDER_EMAIL || 'noreply@getverifind.com',
+        name: process.env.BREVO_SENDER_NAME || 'Verifind',
+        email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_FROM || 'noreply@getverifind.com',
       },
       to: [{ email: to }],
       subject,
@@ -89,7 +89,7 @@ function otpEmail(code) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;background:#F8FAFF;border-radius:16px">
     <div style="text-align:center;margin-bottom:32px">
       <span style="font-size:28px;font-weight:900;letter-spacing:-1px">
-        <span style="color:#1B3068">Ver</span><span style="color:#2D8B1E">Find</span>
+        <span style="color:#1B3068">Veri</span><span style="color:#2D8B1E">find</span>
       </span>
     </div>
     <h2 style="color:#1B3068;margin:0 0 12px">Verify your email</h2>
@@ -103,7 +103,7 @@ function resetEmail(code) {
   return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;background:#F8FAFF;border-radius:16px">
     <div style="text-align:center;margin-bottom:32px">
       <span style="font-size:28px;font-weight:900;letter-spacing:-1px">
-        <span style="color:#1B3068">Ver</span><span style="color:#2D8B1E">Find</span>
+        <span style="color:#1B3068">Veri</span><span style="color:#2D8B1E">find</span>
       </span>
     </div>
     <h2 style="color:#1B3068;margin:0 0 12px">Password reset</h2>
