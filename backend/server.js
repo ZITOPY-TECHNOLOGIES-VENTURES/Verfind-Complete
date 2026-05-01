@@ -614,8 +614,11 @@ app.post('/api/payments/initialize', auth, requireRole('tenant'), async (req, re
 // GET /api/payments/verify/:reference
 app.get('/api/payments/verify/:reference', auth, async (req, res) => {
   try {
-    const paystackData = await psGet(`/transaction/verify/${req.params.reference}`);
-    const payment = await prisma.payment.findUnique({ where: { reference: req.params.reference } });
+    const reference = req.params.reference;
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(reference))
+      return res.status(400).json({ message: 'Invalid payment reference' });
+    const paystackData = await psGet(`/transaction/verify/${reference}`);
+    const payment = await prisma.payment.findUnique({ where: { reference } });
     if (!payment) return res.status(404).json({ message: 'Payment record not found' });
 
     if (paystackData.status === 'success' && payment.status === 'pending') {
@@ -754,6 +757,8 @@ app.get('/api/banks', auth, async (_req, res) => {
 app.post('/api/banks/verify-account', auth, async (req, res) => {
   try {
     const { accountNumber, bankCode } = req.body;
+    if (!/^\d{10}$/.test(accountNumber)) return res.status(400).json({ message: 'Invalid account number' });
+    if (!/^\d{3,6}$/.test(bankCode)) return res.status(400).json({ message: 'Invalid bank code' });
     const data = await psGet(`/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`);
     res.json({ success: true, accountName: data.account_name });
   } catch (err) {
