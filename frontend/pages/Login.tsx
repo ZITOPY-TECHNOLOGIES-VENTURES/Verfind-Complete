@@ -15,10 +15,10 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      // AuthContext redirect handled by App.tsx PublicRoute — but we need to navigate manually after login
-      // since we're not in a PublicRoute after login
-      navigate('/dashboard');
+      const user = await login(email, password);
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'agent') navigate('/agent-dashboard');
+      else navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
