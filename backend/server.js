@@ -147,6 +147,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
     if (!username || !email || !password)
       return res.status(400).json({ message: 'username, email and password are required' });
 
+    // admin role can only be assigned via the seeder script, never via registration
+    const safeRole = role === 'agent' ? 'agent' : 'tenant';
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return res.status(409).json({ message: 'Email already registered' });
 
@@ -156,8 +159,8 @@ app.post('/api/auth/send-otp', async (req, res) => {
 
     await prisma.pendingReg.upsert({
       where: { email },
-      create: { username, email, password: hashed, role: role || 'tenant', phone, nin, otp, otpExpiry },
-      update: { username, password: hashed, role: role || 'tenant', phone, nin, otp, otpExpiry, attempts: 0 },
+      create: { username, email, password: hashed, role: safeRole, phone, nin, otp, otpExpiry },
+      update: { username, password: hashed, role: safeRole, phone, nin, otp, otpExpiry, attempts: 0 },
     });
 
     await sendEmail(email, 'Your Verifind verification code', otpEmail(otp));
@@ -725,7 +728,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
 // ═══════════════════════════════════════════════════════════════════════════
 
 // GET /api/banks
-app.get('/api/banks', auth, async (req, res) => {
+app.get('/api/banks', auth, async (_req, res) => {
   try {
     const banks = await psGet('/bank?country=nigeria&perPage=100');
     res.json({ success: true, banks });
@@ -795,7 +798,7 @@ app.get('/api/banks/my', auth, requireRole('agent'), async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // GET /api/admin/agents
-app.get('/api/admin/agents', auth, requireRole('admin'), async (req, res) => {
+app.get('/api/admin/agents', auth, requireRole('admin'), async (_req, res) => {
   try {
     const agents = await prisma.user.findMany({
       where: { role: 'agent' },
@@ -827,7 +830,7 @@ app.put('/api/admin/agents/:id/kyc', auth, requireRole('admin'), async (req, res
 });
 
 // GET /api/admin/properties
-app.get('/api/admin/properties', auth, requireRole('admin'), async (req, res) => {
+app.get('/api/admin/properties', auth, requireRole('admin'), async (_req, res) => {
   try {
     const properties = await prisma.property.findMany({ orderBy: { createdAt: 'desc' } });
     res.json({ success: true, properties });
