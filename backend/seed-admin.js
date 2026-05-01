@@ -36,7 +36,6 @@ async function main() {
 
   console.log('✅ Admin account created');
   console.log(`   Email:    ${admin.email}`);
-  console.log(`   Password: ${PASSWORD}`);
   console.log(`   ID:       ${admin.id}`);
   console.log('\nChange the password after first login.');
 }
