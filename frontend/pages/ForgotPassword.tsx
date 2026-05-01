@@ -74,7 +74,7 @@ export default function ForgotPassword() {
       <div className="glass-card zoom-in-95" style={{ width: '100%', maxWidth: 400, padding: '40px 36px' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link to="/" style={{ textDecoration: 'none', fontWeight: 900, fontSize: 24, letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#1B3068' }}>Ver</span><span style={{ color: '#2D8B1E' }}>Find</span>
+            <span style={{ color: '#1B3068' }}>Veri</span><span style={{ color: '#2D8B1E' }}>find</span>
           </Link>
           <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 15 }}>{stepTitles[step]}</p>
         </div>
