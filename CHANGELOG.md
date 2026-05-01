@@ -57,6 +57,29 @@ Junior Dev: zimaofficial-web
 
 ---
 
+## 2026-05-01 (session 2)
+
+### Deployment
+- **Fresh DB + clean migration** — deleted old Render PostgreSQL, created new DB, applied V2 migration cleanly. `prisma migrate deploy` now runs automatically on every Render build.
+- **Admin seeder** (`backend/seed-admin.js`) — run once after DB reset to create `admin@getverifind.com`. (rraammsseeyy / Claude)
+- **ALLOWED_ORIGINS env var** set on Render — fixes CORS errors for `getverifind.com`, `www.getverifind.com`, and Render URL. (rraammsseeyy / Claude)
+
+### Fixed
+- **Post-login redirect by role** (`frontend/pages/Login.tsx`, `frontend/App.tsx`)
+  Admin now lands on `/admin`, agents on `/agent`, tenants on `/dashboard` after login.
+  Removed manual `navigate()` call — `PublicRoute` in App.tsx handles role-based redirect. (rraammsseeyy / Claude)
+
+- **Cloudflare Worker `Host` header leak** (`cloudflare-worker.js`)
+  Worker was forwarding `Host: getverifind.com` to Render, causing Render to serve V1 (which had that custom domain registered). Fixed by deleting the `host` header before proxying so Render resolves by URL hostname. (rraammsseeyy / Claude)
+
+- **`getverifind.com` → V2 redirect** (Cloudflare)
+  Root domain apex was not matching Worker route. Added Cloudflare Redirect Rule: `getverifind.com` → `https://www.getverifind.com` (301). (rraammsseeyy)
+
+### KYC
+- **Simplified KYC for MVP** — deferred document uploads (NIN slip, Driver's Licence, CAC certificate) until Prembly integration. Agent registration collects: full name, business name, phone, NIN number. Admin sees the actual NIN value (not just a badge) for manual review. (rraammsseeyy / Claude)
+
+---
+
 ## 2026-05-01
 
 ### Fixed
