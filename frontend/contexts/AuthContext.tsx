@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   loading: true,
-  login: async () => {},
+  login: async () => ({} as User),
   logout: () => {},
   refreshUser: async () => {},
 });
