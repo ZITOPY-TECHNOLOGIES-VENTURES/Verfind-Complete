@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,8 +15,10 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      // PublicRoute in App.tsx handles the redirect based on role
+      const loggedInUser = await login(email, password);
+      if (loggedInUser.role === 'admin') navigate('/admin', { replace: true });
+      else if (loggedInUser.role === 'agent') navigate('/agent', { replace: true });
+      else navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Login failed');
     } finally {
