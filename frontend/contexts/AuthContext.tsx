@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -39,12 +39,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
-  async function login(email: string, password: string): Promise<User> {
+  async function login(email: string, password: string) {
     const res = await api.post<{ token: string; user: User }>('/api/auth/login', { email, password });
     localStorage.setItem('verifind_token', res.token);
     setToken(res.token);
     setUser(res.user);
-    return res.user;
   }
 
   function logout() {
