@@ -28,6 +28,34 @@ export default function AgentDashboard() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
+  const [percents, setPercents] = useState({ serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '' });
+
+  function fmtMoney(val: string) {
+    const n = val.replace(/,/g, '');
+    if (!n || isNaN(Number(n))) return val;
+    return Number(n).toLocaleString();
+  }
+  function calcPct(base: string, pct: string) {
+    const b = Number(base.replace(/,/g, '')); const p = Number(pct);
+    return b && p ? String(Math.round(b * p / 100)) : '';
+  }
+  function backCalcPct(base: number, fee: number) {
+    return base ? String(Math.round(fee / base * 1000) / 10) : '';
+  }
+  function onBaseRentChange(val: string) {
+    const digits = val.replace(/,/g, '').replace(/\D/g, '');
+    setForm(f => ({
+      ...f, baseRent: digits,
+      serviceCharge: calcPct(digits, percents.serviceCharge),
+      cautionFee: calcPct(digits, percents.cautionFee),
+      agencyFee: calcPct(digits, percents.agencyFee),
+      legalFee: calcPct(digits, percents.legalFee),
+    }));
+  }
+  function onPctChange(key: keyof typeof percents, pct: string) {
+    setPercents(p => ({ ...p, [key]: pct }));
+    setForm(f => ({ ...f, [key]: calcPct(f.baseRent, pct) }));
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -44,8 +72,18 @@ export default function AgentDashboard() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  function openCreate() { setForm({ ...EMPTY_FORM }); setEditProp(null); setShowForm(true); setFormError(''); }
+  function openCreate() {
+    setForm({ ...EMPTY_FORM });
+    setPercents({ serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '' });
+    setEditProp(null); setShowForm(true); setFormError('');
+  }
   function openEdit(p: Property) {
+    setPercents({
+      serviceCharge: backCalcPct(p.baseRent, p.serviceCharge),
+      cautionFee: backCalcPct(p.baseRent, p.cautionFee),
+      agencyFee: backCalcPct(p.baseRent, p.agencyFee || 0),
+      legalFee: backCalcPct(p.baseRent, p.legalFee || 0),
+    });
     setForm({
       title: p.title, description: p.description || '', district: p.district, address: p.address || '',
       type: p.type, baseRent: String(p.baseRent), serviceCharge: String(p.serviceCharge),
@@ -65,6 +103,7 @@ export default function AgentDashboard() {
     try {
       const body = {
         ...form,
+        baseRent: form.baseRent.replace(/,/g, ''),
         images: form.images ? form.images.split(',').map(s => s.trim()).filter(Boolean) : [],
       };
       if (editProp) {
@@ -231,12 +270,24 @@ export default function AgentDashboard() {
                   {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map(t => <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>)}
                 </select>
               </FormRow>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <FormRow label="Base Rent (₦/yr) *"><input type="number" value={form.baseRent} onChange={e => setForm(f => ({ ...f, baseRent: e.target.value }))} required /></FormRow>
-                <FormRow label="Service Charge"><input type="number" value={form.serviceCharge} onChange={e => setForm(f => ({ ...f, serviceCharge: e.target.value }))} /></FormRow>
-                <FormRow label="Caution Fee"><input type="number" value={form.cautionFee} onChange={e => setForm(f => ({ ...f, cautionFee: e.target.value }))} /></FormRow>
-                <FormRow label="Agency Fee"><input type="number" value={form.agencyFee} onChange={e => setForm(f => ({ ...f, agencyFee: e.target.value }))} /></FormRow>
-                <FormRow label="Legal Fee"><input type="number" value={form.legalFee} onChange={e => setForm(f => ({ ...f, legalFee: e.target.value }))} /></FormRow>
+              <FormRow label="Base Rent (₦/yr) *">
+                <input value={fmtMoney(form.baseRent)} onChange={e => onBaseRentChange(e.target.value)} placeholder="e.g. 500,000" required />
+              </FormRow>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {(['serviceCharge', 'cautionFee', 'agencyFee', 'legalFee'] as const).map(key => {
+                  const labels = { serviceCharge: 'Service Charge', cautionFee: 'Caution Fee', agencyFee: 'Agency Fee', legalFee: 'Legal Fee' };
+                  const base = Number(form.baseRent.replace(/,/g, ''));
+                  const amt = base && percents[key] ? Math.round(base * Number(percents[key]) / 100) : 0;
+                  return (
+                    <FormRow key={key} label={labels[key]}>
+                      <div style={{ position: 'relative' }}>
+                        <input type="number" value={percents[key]} onChange={e => onPctChange(key, e.target.value)} placeholder="0" min="0" max="100" step="0.1" style={{ paddingRight: 28 }} />
+                        <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: 13, pointerEvents: 'none' }}>%</span>
+                      </div>
+                      {amt > 0 && <div style={{ fontSize: 12, color: 'var(--color-primary)', marginTop: 3, fontWeight: 600 }}>= ₦{amt.toLocaleString()}</div>}
+                    </FormRow>
+                  );
+                })}
               </div>
               <FormRow label="Video Walkthrough URL *">
                 <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="YouTube, Vimeo or direct URL" required />
