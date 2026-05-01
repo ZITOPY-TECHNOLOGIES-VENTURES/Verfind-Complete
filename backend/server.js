@@ -123,8 +123,14 @@ const resetOtps = new Map();
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
 const PS = 'https://api.paystack.co';
 
+function psUrl(path) {
+  const url = new URL(path, PS);
+  if (url.hostname !== 'api.paystack.co') throw new Error('Invalid Paystack path');
+  return url.toString();
+}
+
 async function psPost(path, body) {
-  const r = await fetch(`${PS}${path}`, {
+  const r = await fetch(psUrl(path), {
     method: 'POST',
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -135,7 +141,7 @@ async function psPost(path, body) {
 }
 
 async function psGet(path) {
-  const r = await fetch(`${PS}${path}`, {
+  const r = await fetch(psUrl(path), {
     headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
   });
   const d = await r.json();
