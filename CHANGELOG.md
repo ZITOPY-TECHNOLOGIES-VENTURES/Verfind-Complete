@@ -8,6 +8,31 @@ Junior Dev: zimaofficial-web
 
 ---
 
+## 2026-05-01
+
+### Fixed
+- **CRITICAL — `under-offer` Prisma enum mismatch** (`backend/server.js`)
+  DB stores `under_obj` but server was writing `'under-offer'` (hyphen) to Prisma, causing
+  silent validation errors on the payment webhook and payment verify routes — property status
+  never updated after payment. Fixed: added `fmtProp`/`fmtProps`/`toDbStatus` helpers.
+  All property reads normalise `under_obj` → `under-offer` for the frontend. All writes use
+  `under_obj`. (rraammsseeyy / Claude)
+
+- **SECURITY — Login allowed unverified users** (`backend/server.js`)
+  Login route never checked `isEmailVerified`, so a user who bypassed OTP (e.g. via mock
+  engine) could log in with a real DB account. Added `isEmailVerified` check — returns 403
+  with clear message if not verified. (rraammsseeyy / Claude)
+
+### Added
+- **CodeRabbit config** (`.coderabbit.yaml`) — AI code review on all PRs from junior dev.
+  Focused on logic/security issues, not style. Auto-reviews on PR open. (rraammsseeyy / Claude)
+
+- **Cloudflare Worker** (`cloudflare-worker.js`) — proxies `getverifind.com` →
+  `verfind-production.onrender.com`. Includes full deploy instructions in file header.
+  (rraammsseeyy / Claude)
+
+---
+
 ## 2026-04-28
 
 ### Fixed

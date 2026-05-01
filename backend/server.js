@@ -234,7 +234,7 @@ app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), asy
             reference,
           }
         });
-        if (metadata?.propertyId) await prisma.property.update({ where: { id: metadata.propertyId }, data: { status: 'under-offer' } });
+        if (metadata?.propertyId) await prisma.property.update({ where: { id: metadata.propertyId }, data: { status: 'under_offer' } });
         
         await sendPaymentEmail(payment.tenantEmail, 'Payment Confirmed', 
           `Your payment for <b>${payment.propertyTitle}</b> has been confirmed. The agent will contact you shortly.`);
@@ -329,6 +329,12 @@ const safeFmt = (user) => {
   const { password, ...safe } = user;
   return safe;
 };
+
+// Normalise PropertyStatus for the frontend: DB stores under_offer, API exposes under-offer
+const fmtProp  = (p) => ({ ...p, status: p.status === 'under_offer' ? 'under-offer' : p.status });
+const fmtProps = (arr) => arr.map(fmtProp);
+// Convert frontend status value to DB enum value before Prisma writes/queries
+const toDbStatus = (s) => s === 'under-offer' ? 'under_offer' : s;
 
 const serverError = (res, err) => {
   console.error('[server error]', err);
@@ -438,6 +444,9 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
 
     if (!user || !match)
       return res.status(401).json({ message: 'Invalid email or password' });
+
+    if (!user.isEmailVerified)
+      return res.status(403).json({ message: 'Please verify your email before logging in.' });
 
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: safeFmt(user) });
@@ -557,7 +566,7 @@ app.get('/api/properties', async (req, res) => {
     }
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) return res.status(400).json({ message: 'Invalid status' });
-      where.status = status;
+      where.status = toDbStatus(status);
     }
     if (minRent !== undefined || maxRent !== undefined) {
       where.baseRent = {};
@@ -570,7 +579,7 @@ app.get('/api/properties', async (req, res) => {
       orderBy: { createdAt: 'desc' },
       take: 200
     });
-    res.json(props);
+    res.json(fmtProps(props));
   } catch (err) { serverError(res, err); }
 });
 
@@ -606,7 +615,7 @@ app.post('/api/properties', auth, agentOnly, async (req, res) => {
         status:            'available',
       }
     });
-    res.status(201).json(property);
+    res.status(201).json(fmtProp(property));
   } catch (err) { serverError(res, err); }
 });
 
@@ -614,7 +623,7 @@ app.get('/api/properties/:id', async (req, res) => {
   try {
     const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Property not found' });
-    res.json(prop);
+    res.json(fmtProp(prop));
   } catch (err) { serverError(res, err); }
 });
 
@@ -638,7 +647,7 @@ app.put('/api/properties/:id', auth, agentOnly, async (req, res) => {
       where: { id: req.params.id },
       data: allowed
     });
-    res.json(updated);
+    res.json(fmtProp(updated));
   } catch (err) { serverError(res, err); }
 });
 
@@ -668,7 +677,7 @@ app.post('/api/properties/:id/verify', auth, agentOnly, async (req, res) => {
       where: { id: req.params.id },
       data: { verificationStage: next, isVerified: next === 'verified' }
     });
-    res.json(updated);
+    res.json(fmtProp(updated));
   } catch (err) { serverError(res, err); }
 });
 
@@ -676,7 +685,7 @@ app.post('/api/properties/:id/book-inspection', auth, async (req, res) => {
   try {
     const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!prop) return res.status(404).json({ message: 'Not found' });
-    res.json({ success: true, property: prop });
+    res.json({ success: true, property: fmtProp(prop) });
   } catch (err) { serverError(res, err); }
 });
 
@@ -741,7 +750,7 @@ app.get('/api/payments/verify/:reference', auth, async (req, res) => {
     const txData = await paystackRequest('GET', `/transaction/verify/${req.params.reference}`);
     if (txData.status === 'success') {
       await prisma.payment.update({ where: { id: payment.id }, data: { status: 'confirmed', paystackData: txData } });
-      await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'under-offer' } });
+      await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'under_offer' } });
       return res.json({ status: 'confirmed', payment });
     }
     res.json({ status: txData.status, payment });

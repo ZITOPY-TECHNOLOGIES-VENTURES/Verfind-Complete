@@ -1,0 +1,43 @@
+language: en-US
+
+reviews:
+  enabled: true
+  profile: chill          # focus on real issues, not style nitpicks
+  auto_review:
+    enabled: true
+    drafts: false         # only review ready PRs, not drafts
+  request_changes_workflow: false
+
+  path_filters:
+    - "!**/*.lock"
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+
+  review_status: true
+
+  poem: false
+  collapse_walkthrough: false
+
+  tools:
+    github-checks:
+      enabled: true
+
+  finishing_touches:
+    docstrings:
+      enabled: false       # we don't write docstrings in this project
+
+knowledge_base:
+  opt_out: false
+
+  learnings:
+    scope: auto
+
+  issues:
+    scope: auto
+
+  jira:
+    usage: disabled
+
+  linear:
+    usage: disabled
