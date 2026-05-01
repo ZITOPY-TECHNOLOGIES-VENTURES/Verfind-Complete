@@ -14,8 +14,6 @@ interface Agent {
   businessName?: string;
   isKycVerified: boolean;
   nin?: string;
-  driverLicenseUrl?: string;
-  cacDocUrl?: string;
   isEmailVerified: boolean;
   createdAt: string;
 }
@@ -115,11 +113,9 @@ export default function AdminDashboard() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{a.businessName || a.username}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{a.email} · {a.phone || 'No phone'}</div>
-                      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {a.nin && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>NIN: <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{a.nin}</span></div>}
+                      <div style={{ marginTop: 8 }}>
                         <KycBadge verified={a.isKycVerified} />
-                        {a.nin && <KycItem label="NIN" done />}
-                        {a.driverLicenseUrl && <KycItem label="ID Doc" done />}
-                        {a.cacDocUrl && <KycItem label="CAC" done />}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
@@ -187,10 +183,3 @@ function KycBadge({ verified, label = 'KYC' }: { verified: boolean; label?: stri
   );
 }
 
-function KycItem({ label, done }: { label: string; done: boolean }) {
-  return (
-    <span style={{ fontSize: 11, background: done ? 'rgba(22,163,74,.1)' : 'var(--glass-bg-subtle)', color: done ? '#16a34a' : 'var(--text-muted)', borderRadius: 99, padding: '2px 8px', fontWeight: 600 }}>
-      {done ? '✓' : '✗'} {label}
-    </span>
-  );
-}
