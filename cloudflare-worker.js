@@ -3,56 +3,40 @@
  *
  * Routes all traffic from getverifind.com → verfind-production.onrender.com
  *
- * DEPLOY STEPS:
- * 1. Cloudflare Dashboard → Workers & Pages → Create Worker
- * 2. Paste this file, save & deploy
- * 3. Go to Workers → your worker → Settings → Triggers → Add Custom Domain
- *    Add: getverifind.com  and  www.getverifind.com
+ * DEPLOY STEPS (same pattern as zitopy.com):
  *
- * DNS RECORDS to add in Cloudflare (Dashboard → DNS):
- *   Type   Name   Target                               Proxy
- *   CNAME  @      verfind-production.onrender.com      Proxied (orange cloud)
- *   CNAME  www    verfind-production.onrender.com      Proxied (orange cloud)
+ * 1 — DNS Records (Cloudflare → getverifind.com → DNS → Records)
+ *   Delete any AAAA records first, then add:
+ *   Type: CNAME | Name: @   | Target: verfind-production.onrender.com | Proxy: ON (orange)
+ *   Type: CNAME | Name: www | Target: verfind-production.onrender.com | Proxy: ON (orange)
  *
- * RENDER ENV VARS to update after domain is live:
+ * 2 — Create the Worker
+ *   Left sidebar → Workers & Pages → Create → Create Worker
+ *   Name it: verifind-proxy → Deploy → Edit code
+ *   Delete existing code, paste this file, Deploy
+ *
+ * 3 — Attach Worker to domain
+ *   Worker page → Settings → Domains & Routes → Add → Route
+ *   Route: getverifind.com/*     | Zone: getverifind.com → Save
+ *   Route: www.getverifind.com/* | Zone: getverifind.com → Save
+ *
+ * 4 — Update Render env vars
  *   ALLOWED_ORIGINS=https://getverifind.com,https://www.getverifind.com,https://verfind-production.onrender.com
  *   FRONTEND_URL=https://getverifind.com
  */
 
-const RENDER_ORIGIN = 'https://verfind-production.onrender.com';
-
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request) {
     const url = new URL(request.url);
+    url.hostname = 'verfind-production.onrender.com';
 
-    // Build the target URL on Render — keep path + query string unchanged
-    const targetURL = new URL(url.pathname + url.search, RENDER_ORIGIN);
-
-    // Forward all headers, tell Render the real host the visitor used
-    const headers = new Headers(request.headers);
-    headers.set('X-Forwarded-Host', url.hostname);
-    headers.set('X-Forwarded-Proto', 'https');
-    const clientIP = request.headers.get('CF-Connecting-IP');
-    if (clientIP) headers.set('X-Real-IP', clientIP);
-
-    const init = {
+    const newRequest = new Request(url.toString(), {
       method: request.method,
-      headers,
+      headers: request.headers,
+      body: request.method !== 'GET' && request.method !== 'HEAD' ? request.body : null,
       redirect: 'follow',
-    };
-
-    // Only attach a body for methods that support one
-    if (!['GET', 'HEAD'].includes(request.method)) {
-      init.body = request.body;
-    }
-
-    const response = await fetch(targetURL.toString(), init);
-
-    // Pass the response straight through — Cloudflare adds TLS/CDN automatically
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
     });
+
+    return fetch(newRequest);
   },
 };
