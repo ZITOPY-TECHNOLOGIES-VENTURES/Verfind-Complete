@@ -1,859 +1,865 @@
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const rateLimit = require('express-rate-limit');
-const { PrismaClient } = require('@prisma/client');
-const bcrypt    = require('bcryptjs');
-const jwt       = require('jsonwebtoken');
-const crypto    = require('crypto');
-const path      = require('path');
+'use strict';
 require('dotenv').config();
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
+const { PrismaClient } = require('@prisma/client');
 
+const app = express();
 const prisma = new PrismaClient();
 
-// ─── OTP STORE (In-memory for demo) ───────────────────────────────────────────
-const otpStore = new Map();
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+// ── Security & CORS ────────────────────────────────────────────────────────
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',').map(s => s.trim()).filter(Boolean);
 
-const sendOtpEmail = async (to, name, otp) => {
-  const BREVO_KEY = process.env.BREVO_API_KEY;
-  const FROM_EMAIL = process.env.EMAIL_FROM || 'hello@getverifind.com';
-  const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
-
-  if (!BREVO_KEY) {
-    console.error('❌ BREVO_API_KEY is missing. Code delivery failed.');
-    return false;
-  }
-
-  try {
-    const body = {
-      sender:      { name: FROM_NAME, email: FROM_EMAIL },
-      to:          [{ email: to, name }],
-      subject:     `Your Verifind verification code is ${otp}`,
-      htmlContent: `
-        <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:40px 32px;background:#050D1E;border-radius:12px;border:1px solid #1e293b">
-          <div style="text-align:center;margin-bottom:32px">
-            <div style="width:48px;height:48px;background:#3B82F6;border-radius:12px;margin:0 auto 20px;line-height:48px;color:#ffffff;font-size:24px;font-weight:bold;">V</div>
-            <h1 style="font-size:24px;font-weight:bold;color:#ffffff;margin:0 0 8px">Verify your identity</h1>
-            <p style="color:#94a3b8;font-size:15px;margin:0;line-height:1.5">Hi ${name}, use the secure code below to access your Verifind account.</p>
-          </div>
-          <div style="background:#0a1226;border:2px dashed #1e293b;border-radius:8px;padding:32px;text-align:center;margin-bottom:24px">
-            <div style="font-size:42px;font-weight:bold;letter-spacing:8px;color:#60A5FA;font-family:monospace;">${otp}</div>
-            <p style="font-size:13px;color:#64748b;margin:16px 0 0;">Code expires in <strong style="color:#94a3b8">10 minutes</strong></p>
-          </div>
-          <hr style="border:none;border-top:1px solid #1e293b;margin:24px 0" />
-          <p style="font-size:12px;color:#475569;text-align:center;margin:0;line-height:1.5">If you didn't request this code, you can safely ignore this email.<br/>Secure Real Estate, verified by Verifind.</p>
-        </div>
-      `,
-    };
-
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method:  'POST',
-      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      console.error('❌ Brevo HTTP Error:', errData);
-      return false; // Crucial fix: return false on failure!
-    }
-    return true; // Successfully delivered via Brevo
-  } catch (err) {
-    console.error('❌ Brevo Network Error:', err.message);
-    return false; // Crucial fix: return false on crash!
-  }
-};
-
-const sendPaymentEmail = async (to, subject, message) => {
-  const BREVO_KEY  = process.env.BREVO_API_KEY;
-  const FROM_EMAIL = process.env.EMAIL_FROM || 'hello@getverifind.com';
-  const FROM_NAME  = process.env.EMAIL_FROM_NAME || 'Verifind';
-  if (!BREVO_KEY) {
-    console.error('❌ BREVO_API_KEY is missing. Email delivery failed.');
-    return;
-  }
-  try {
-    await fetch('https://api.brevo.com/v3/smtp/email', {
-      method:  'POST',
-      headers: { 'api-key': BREVO_KEY, 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        sender:      { name: FROM_NAME, email: FROM_EMAIL },
-        to:          [{ email: to }],
-        subject,
-        htmlContent: `<div style="font-family:sans-serif;padding:24px;background:#f9f9f9;border-radius:12px;color:#333">
-                <h2 style="color:#1B4FD8">${subject}</h2>
-                <p style="font-size:16px;line-height:1.5">${message}</p>
-                <hr style="border:none;border-top:1px solid #eee;margin:20px 0" />
-                <p style="font-size:12px;color:#999">Verifind Escrow — Secure Real Estate Payments</p>
-               </div>`,
-      }),
-    });
-  } catch (err) { console.error('❌ Email Error:', err.message); }
-};
-
-// ─── PAYSTACK CONFIG ──────────────────────────────────────────────────────────
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_BASE   = 'https://api.paystack.co';
-const RELEASE_HOURS   = Number(process.env.RELEASE_HOURS || 48);
-
-const paystackRequest = async (method, path, body = null) => {
-  const res = await fetch(`${PAYSTACK_BASE}${path}`, {
-    method,
-    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = await res.json();
-  if (!data.status) throw new Error(data.message || 'Paystack request failed');
-  return data.data;
-};
-
-const processScheduledReleases = async () => {
-  try {
-    const due = await prisma.payment.findMany({
-      where: { status: 'confirmed', releaseDate: { lte: new Date() } },
-      take: 10,
-    });
-    for (const payment of due) {
-      try {
-        let recipientCode = payment.recipientCode;
-        if (!recipientCode) {
-          const agentBank = await prisma.agentBank.findUnique({ where: { agentId: payment.agentId } });
-          if (!agentBank) continue;
-          recipientCode = agentBank.recipientCode;
-        }
-
-        // Attempt Paystack transfer
-        try {
-          const transferData = await paystackRequest('POST', '/transfer', {
-            source: 'balance',
-            amount: Math.round(payment.amount * 0.9 * 100),
-            recipient: recipientCode,
-            reason: `Rent payment: ${payment.propertyTitle}`,
-          });
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: { status: 'releasing', transferReference: transferData.transfer_code },
-          });
-        } catch (transferErr) {
-          console.error(`Transfer failed for ${payment.reference}:`, transferErr.message);
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: { status: 'released' },
-          });
-        }
-
-        await prisma.property.update({
-          where: { id: payment.propertyId },
-          data: { status: 'rented' },
-        });
-
-        await prisma.transaction.create({
-          data: {
-            userId:      payment.agentId,
-            propertyId:  payment.propertyId,
-            type:        'escrow_release',
-            amount:      payment.amount * 0.9,
-            status:      'completed',
-            description: `Auto-released funds for ${payment.propertyTitle}`,
-            reference:   payment.reference,
-          },
-        });
-      } catch (err) {
-        console.error(`Scheduled release failed for ${payment.reference}:`, err.message);
-      }
-    }
-  } catch (err) {
-    console.error('Release scheduler error:', err.message);
-  }
-};
-
-// Run scheduled releases every 30 minutes
-setInterval(processScheduledReleases, 30 * 60 * 1000);
-
-// ─── STARTUP GUARD ────────────────────────────────────────────────────────────
-// FIX 1: Crash hard if JWT_SECRET is missing.
-// The old code silently fell back to a hardcoded string anyone could use to
-// forge tokens for any user. Now we refuse to start instead.
-if (!process.env.JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is not set. Refusing to start.');
-  process.exit(1);
-}
-
-const app        = express();
-const PORT       = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET;
-
-const ALLOWED_ORIGINS = (
-  process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173'
-).split(',').map(o => o.trim());
-
-// ─── SECURITY MIDDLEWARE ──────────────────────────────────────────────────────
-
-// FIX 2: Helmet sets 11 protective response headers (X-Frame-Options,
-// X-Content-Type-Options, HSTS, Referrer-Policy, etc.) in one call.
-app.use(helmet());
-
-// FIX 3: Restrict CORS to known origins.
-// The old config had origin:'*' + credentials:true — browsers reject that
-// combination, and wildcarding defeats the purpose of CORS entirely.
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS: origin ${origin} not allowed`));
+    cb(new Error(`CORS: origin not allowed — ${origin}`));
   },
   credentials: true,
 }));
+app.use(express.json({ limit: '20mb' }));
+app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
 
-// FIX 4b: Paystack Webhook — MUST come before express.json() for signature verification
-app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// ── JWT ────────────────────────────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+
+function auth(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h?.startsWith('Bearer ')) return res.status(401).json({ message: 'No token' });
   try {
-    const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
-    if (!PAYSTACK_SECRET) return res.sendStatus(200);
-
-    const hash = crypto.createHmac('sha512', PAYSTACK_SECRET).update(req.body).digest('hex');
-    if (hash !== req.headers['x-paystack-signature']) return res.status(400).json({ message: 'Invalid signature' });
-
-    const event = JSON.parse(req.body);
-    if (event.event === 'charge.success') {
-      const { reference, metadata } = event.data;
-      const payment = await prisma.payment.findUnique({ where: { reference } });
-      if (payment && payment.status === 'pending') {
-        await prisma.payment.update({
-          where: { reference },
-          data: { status: 'confirmed', paystackData: event.data }
-        });
-        await prisma.transaction.create({
-          data: {
-            userId: payment.tenantId,
-            propertyId: payment.propertyId,
-            type: 'escrow_hold',
-            amount: payment.amount,
-            status: 'completed',
-            description: `Rent payment for ${payment.propertyTitle} (Reference: ${reference})`,
-            reference,
-          }
-        });
-        if (metadata?.propertyId) await prisma.property.update({ where: { id: metadata.propertyId }, data: { status: 'under_offer' } });
-        
-        await sendPaymentEmail(payment.tenantEmail, 'Payment Confirmed', 
-          `Your payment for <b>${payment.propertyTitle}</b> has been confirmed. The agent will contact you shortly.`);
-      }
-    }
-
-    if (event.event === 'transfer.success') {
-      const payment = await prisma.payment.findFirst({ where: { transferReference: event.data.transfer_code } });
-      if (payment) {
-        await prisma.payment.update({ where: { id: payment.id }, data: { status: 'released' } });
-        await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'rented' } });
-      }
-    }
-    res.sendStatus(200);
-  } catch (err) {
-    console.error('Webhook error:', err);
-    res.sendStatus(200);
-  }
-});
-
-app.use(express.json({ limit: '2mb' }));
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { message: 'Too many attempts — please try again in 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  message: { message: 'Too many login attempts — please try again in 15 minutes' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// ─── VALID VALUES ─────────────────────────────────────────────────────────────
-
-const VALID_DISTRICTS = [
-  'Central Area','Maitama','Asokoro','Wuse','Gwarimpa','Jabi','Guzape',
-  'Katampe','Life Camp','Apo','Lokogoma','Galadimawa','Dawaki',
-  'Lugbe','Kubwa','Bwari','Mpape',
-];
-const VALID_TYPES     = ['Apartment','House','Duplex','Bungalow'];
-const VALID_STATUSES  = ['available','under-offer','rented'];
-const VERIFICATION_STAGES = [
-  'listing_created','docs_uploaded','agent_vetted','inspection_scheduled','verified',
-];
-
-const PROPERTY_ALLOWED_FIELDS = [
-  'title','description','district','address','type',
-  'baseRent','serviceCharge','cautionFee','images','videoUrl',
-  'bedrooms','bathrooms','sqm','furnished','parking',
-];
-
-const DISTRICT_COORDS = {
-  'Central Area': { lat: 9.053, lng: 7.489 },
-  'Maitama':      { lat: 9.088, lng: 7.498 },
-  'Wuse':         { lat: 9.066, lng: 7.456 },
-  'Asokoro':      { lat: 9.035, lng: 7.518 },
-  'Gwarimpa':     { lat: 9.102, lng: 7.391 },
-  'Jabi':         { lat: 9.068, lng: 7.425 },
-  'Guzape':       { lat: 9.015, lng: 7.502 },
-  'Lugbe':        { lat: 8.972, lng: 7.368 },
-  'Kubwa':        { lat: 9.133, lng: 7.346 },
-  'Bwari':        { lat: 9.238, lng: 7.382 },
-  'Apo':          { lat: 9.004, lng: 7.527 },
-  'Katampe':      { lat: 9.099, lng: 7.463 },
-  'Dawaki':       { lat: 9.116, lng: 7.349 },
-  'Galadimawa':   { lat: 9.019, lng: 7.447 },
-  'Lokogoma':     { lat: 8.992, lng: 7.415 },
-  'Life Camp':    { lat: 9.083, lng: 7.423 },
-  'Mpape':        { lat: 9.156, lng: 7.418 },
-};
-
-// ─── DATABASE ────────────────────────────────────────────────────────────────
-
-async function checkDb() {
-  try {
-    await prisma.$connect();
-    console.log('✅ Postgres (Prisma) connected');
-  } catch (err) {
-    console.error('❌ Database connection error:', err.message);
-  }
-}
-checkDb();
-
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
-
-const safeFmt = (user) => {
-  const { password, ...safe } = user;
-  return safe;
-};
-
-// Normalise PropertyStatus for the frontend: DB stores under_offer, API exposes under-offer
-const fmtProp  = (p) => ({ ...p, status: p.status === 'under_offer' ? 'under-offer' : p.status });
-const fmtProps = (arr) => arr.map(fmtProp);
-// Convert frontend status value to DB enum value before Prisma writes/queries
-const toDbStatus = (s) => s === 'under-offer' ? 'under_offer' : s;
-
-const serverError = (res, err) => {
-  console.error('[server error]', err);
-  res.status(500).json({ message: 'An internal error occurred' });
-};
-
-const pickAllowed = (body, allowedFields) => {
-  const result = {};
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) result[field] = body[field];
-  }
-  return result;
-};
-
-// ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
-
-const auth = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Authentication required' });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(h.slice(7), JWT_SECRET);
     next();
   } catch {
     res.status(401).json({ message: 'Invalid or expired token' });
   }
-};
+}
 
-const agentOnly = async (req, res, next) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (!user || !['agent','admin'].includes(user.role))
-      return res.status(403).json({ message: 'Agents and admins only' });
-    req.dbUser = user;
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) return res.status(403).json({ message: 'Forbidden' });
     next();
-  } catch (err) { serverError(res, err); }
-};
+  };
+}
 
-// ─── AUTH ROUTES ─────────────────────────────────────────────────────────────
+// ── Brevo email ────────────────────────────────────────────────────────────
+async function sendEmail(to, subject, htmlContent) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: {
+        name: 'Verifind',
+        email: process.env.BREVO_SENDER_EMAIL || 'noreply@getverifind.com',
+      },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error: ${err}`);
+  }
+}
 
-app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
+function otpEmail(code) {
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;background:#F8FAFF;border-radius:16px">
+    <div style="text-align:center;margin-bottom:32px">
+      <span style="font-size:28px;font-weight:900;letter-spacing:-1px">
+        <span style="color:#1B3068">Ver</span><span style="color:#2D8B1E">Find</span>
+      </span>
+    </div>
+    <h2 style="color:#1B3068;margin:0 0 12px">Verify your email</h2>
+    <p style="color:#555;margin:0 0 28px">Enter this code in the Verifind app:</p>
+    <div style="background:#fff;border:2px solid #0A66C2;border-radius:12px;padding:20px;text-align:center;letter-spacing:10px;font-size:38px;font-weight:800;color:#0A66C2">${code}</div>
+    <p style="color:#888;font-size:13px;margin:20px 0 0">Expires in 15 minutes. Don't share this with anyone.</p>
+  </div>`;
+}
+
+function resetEmail(code) {
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;background:#F8FAFF;border-radius:16px">
+    <div style="text-align:center;margin-bottom:32px">
+      <span style="font-size:28px;font-weight:900;letter-spacing:-1px">
+        <span style="color:#1B3068">Ver</span><span style="color:#2D8B1E">Find</span>
+      </span>
+    </div>
+    <h2 style="color:#1B3068;margin:0 0 12px">Password reset</h2>
+    <p style="color:#555;margin:0 0 28px">Your reset code:</p>
+    <div style="background:#fff;border:2px solid #0A66C2;border-radius:12px;padding:20px;text-align:center;letter-spacing:10px;font-size:38px;font-weight:800;color:#0A66C2">${code}</div>
+    <p style="color:#888;font-size:13px;margin:20px 0 0">Expires in 15 minutes. If you didn't request this, ignore it.</p>
+  </div>`;
+}
+
+// ── OTP helpers ────────────────────────────────────────────────────────────
+function genOtp() { return Math.floor(100000 + Math.random() * 900000).toString(); }
+
+// In-memory password-reset OTPs (acceptable — lost on restart, short-lived)
+const resetOtps = new Map();
+
+// ── Paystack ───────────────────────────────────────────────────────────────
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+const PS = 'https://api.paystack.co';
+
+async function psPost(path, body) {
+  const r = await fetch(`${PS}${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json();
+  if (!d.status) throw new Error(d.message || 'Paystack error');
+  return d.data;
+}
+
+async function psGet(path) {
+  const r = await fetch(`${PS}${path}`, {
+    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` },
+  });
+  const d = await r.json();
+  if (!d.status) throw new Error(d.message || 'Paystack error');
+  return d.data;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function safeUser(user) {
+  const { password, ...rest } = user;
+  return rest;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUTH ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// POST /api/auth/send-otp — register step 1
+app.post('/api/auth/send-otp', async (req, res) => {
   try {
-    let { username, email, password, role } = req.body;
+    const { username, email, password, role, phone, nin } = req.body;
+    if (!username || !email || !password)
+      return res.status(400).json({ message: 'username, email and password are required' });
 
-    if (!username?.trim() || !email?.trim() || !password)
-      return res.status(400).json({ message: 'Name, email and password are required' });
-    if (username.trim().length > 60)
-      return res.status(400).json({ message: 'Name too long (max 60 characters)' });
-    if (password.length < 8)
-      return res.status(400).json({ message: 'Password must be at least 8 characters' });
-    if (!['tenant', 'agent'].includes(role)) role = 'tenant';
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ message: 'Email already registered' });
 
-    const emailClean = email.toLowerCase().trim();
+    const hashed = await bcrypt.hash(password, 12);
+    const otp = genOtp();
+    const otpExpiry = new Date(Date.now() + 15 * 60 * 1000);
 
-    if (await prisma.user.findUnique({ where: { email: emailClean } }))
-      return res.status(400).json({ message: 'An account with this email already exists' });
-
-    const existing = await prisma.pendingReg.findUnique({ where: { email: emailClean } });
-    if (existing) {
-      const age = Date.now() - new Date(existing.createdAt).getTime();
-      if (age < 60_000)
-        return res.status(429).json({ message: 'Please wait 60 seconds before requesting a new code' });
-      await prisma.pendingReg.delete({ where: { email: emailClean } });
-    }
-
-    const otp       = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    const hashed    = await bcrypt.hash(password, 12);
-
-    await prisma.pendingReg.create({
-      data: {
-        username: username.trim(),
-        email:    emailClean,
-        password: hashed,
-        role:     role === 'agent' ? 'agent' : 'tenant',
-        otp,
-        otpExpiry,
-      }
+    await prisma.pendingReg.upsert({
+      where: { email },
+      create: { username, email, password: hashed, role: role || 'tenant', phone, nin, otp, otpExpiry },
+      update: { username, password: hashed, role: role || 'tenant', phone, nin, otp, otpExpiry, attempts: 0 },
     });
 
-    const emailSent = await sendOtpEmail(emailClean, username.trim(), otp);
-    
-    if (!emailSent) {
-      // If we couldn't send the email (missing API key or Brevo failure)
-      return res.status(500).json({ 
-        sent: false, 
-        message: 'Failed to send verification email. Please check server email delivery settings.' 
-      });
-    }
-
-    res.json({ 
-      sent: true, 
-      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined, // Useful if the user tests without Mailer
-      message: `Verification code sent to ${emailClean}`
-    });
-  } catch (err) { serverError(res, err); }
+    await sendEmail(email, 'Your Verifind verification code', otpEmail(otp));
+    res.json({ success: true, message: 'Verification code sent' });
+  } catch (err) {
+    console.error('send-otp:', err.message);
+    res.status(500).json({ message: err.message || 'Failed to send verification code' });
+  }
 });
 
-app.post('/api/auth/login', loginLimiter, async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ message: 'Email and password required' });
-
-    const user = await prisma.user.findUnique({ where: { email: String(email).toLowerCase().trim() } });
-
-    const match = user ? await bcrypt.compare(String(password), user.password) : false;
-
-    if (!user || !match)
-      return res.status(401).json({ message: 'Invalid email or password' });
-
-    if (!user.isEmailVerified)
-      return res.status(403).json({ message: 'Please verify your email before logging in.' });
-
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: safeFmt(user) });
-  } catch (err) { serverError(res, err); }
-});
-
-app.post('/api/auth/verify-email', authLimiter, async (req, res) => {
+// POST /api/auth/verify-email
+app.post('/api/auth/verify-email', async (req, res) => {
   try {
     const { email, otp } = req.body;
-    if (!email || !otp)
-      return res.status(400).json({ message: 'Email and verification code are required' });
-
-    const emailClean = email.toLowerCase().trim();
-    const pending    = await prisma.pendingReg.findUnique({ where: { email: emailClean } });
-
-    if (!pending)
-      return res.status(400).json({ message: 'No pending registration found or code expired.', expired: true });
-
-    if (new Date() > pending.otpExpiry)
-      return res.status(400).json({ message: 'Verification code has expired.', expired: true });
-
-    if (pending.attempts >= 5) {
-      await prisma.pendingReg.delete({ where: { email: emailClean } });
-      return res.status(400).json({ message: 'Too many incorrect attempts. Please start again.', expired: true });
-    }
-
-    if (pending.otp !== String(otp).trim()) {
-      await prisma.pendingReg.update({
-        where: { email: emailClean },
-        data: { attempts: { increment: 1 } }
-      });
-      return res.status(400).json({ message: `Incorrect code.` });
+    const pending = await prisma.pendingReg.findUnique({ where: { email } });
+    if (!pending) return res.status(400).json({ message: 'No pending registration for this email' });
+    if (pending.attempts >= 5) return res.status(429).json({ message: 'Too many attempts. Request a new code.' });
+    if (new Date() > pending.otpExpiry) return res.status(400).json({ message: 'Code expired. Request a new one.' });
+    if (pending.otp !== otp) {
+      await prisma.pendingReg.update({ where: { email }, data: { attempts: { increment: 1 } } });
+      return res.status(400).json({ message: 'Invalid code' });
     }
 
     const user = await prisma.user.create({
       data: {
         username: pending.username,
-        email:    emailClean,
+        email: pending.email,
         password: pending.password,
-        role:     pending.role,
+        role: pending.role,
+        phone: pending.phone,
+        nin: pending.nin,
         isEmailVerified: true,
-      }
+      },
     });
 
-    await prisma.pendingReg.delete({ where: { email: emailClean } });
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user: safeFmt(user) });
-  } catch (err) { serverError(res, err); }
-});
+    await prisma.pendingReg.delete({ where: { email } });
 
-app.post('/api/auth/forgot-password', async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
-    const otp = generateOTP();
-    otpStore.set(email, { otp, expires: Date.now() + 600000, purpose: 'reset' });
-    
-    if (user) {
-      await sendOtpEmail(email, user.username || 'User', otp);
-    }
-    
-    res.json({ message: 'If an account exists, a reset code was sent' });
-  } catch (err) { serverError(res, err); }
-});
-
-app.post('/api/auth/verify-otp', (req, res) => {
-  const { email, otp } = req.body;
-  const entry = otpStore.get(email);
-  if (!entry || entry.otp !== otp || Date.now() > entry.expires) {
-    return res.status(400).json({ success: false, message: 'Invalid or expired code' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ success: true, token, user: safeUser(user) });
+  } catch (err) {
+    console.error('verify-email:', err.message);
+    res.status(500).json({ message: 'Verification failed' });
   }
-  res.json({ success: true });
 });
 
-app.post('/api/auth/reset-password', async (req, res) => {
+// POST /api/auth/login
+app.post('/api/auth/login', async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
-    const entry = otpStore.get(email);
-    if (!entry || entry.otp !== otp || Date.now() > entry.expires || entry.purpose !== 'reset') {
-      return res.status(400).json({ message: 'Invalid session' });
-    }
-    
+    const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    
-    await prisma.user.update({
-      where: { email },
-      data: { password: await bcrypt.hash(newPassword, 12) }
-    });
-    otpStore.delete(email);
-    res.json({ success: true, message: 'Password updated' });
-  } catch (err) { serverError(res, err); }
+    if (!user) return res.status(401).json({ message: 'Invalid email or password' });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ message: 'Invalid email or password' });
+    if (!user.isEmailVerified)
+      return res.status(403).json({ message: 'Please verify your email before logging in.' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
+    res.json({ success: true, token, user: safeUser(user) });
+  } catch (err) {
+    console.error('login:', err.message);
+    res.status(500).json({ message: 'Login failed' });
+  }
 });
 
+// GET /api/auth/me
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({ where: { id: req.user.id } });
     if (!user) return res.status(404).json({ message: 'User not found' });
-    res.json(safeFmt(user));
-  } catch (err) { serverError(res, err); }
+    res.json({ success: true, user: safeUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed' });
+  }
 });
 
-// ─── PROPERTY ROUTES ─────────────────────────────────────────────────────────
+// PUT /api/auth/me — update profile (phone, businessName, currentAddress, etc.)
+app.put('/api/auth/me', auth, async (req, res) => {
+  try {
+    const { username, phone, businessName, currentAddress, nin, ninUrl, driverLicenseUrl, cacDocUrl } = req.body;
+    const data = {};
+    if (username) data.username = username;
+    if (phone !== undefined) data.phone = phone;
+    if (businessName !== undefined) data.businessName = businessName;
+    if (currentAddress !== undefined) data.currentAddress = currentAddress;
+    if (nin !== undefined) data.nin = nin;
+    if (ninUrl !== undefined) data.ninUrl = ninUrl;
+    if (driverLicenseUrl !== undefined) data.driverLicenseUrl = driverLicenseUrl;
+    if (cacDocUrl !== undefined) data.cacDocUrl = cacDocUrl;
+    const user = await prisma.user.update({ where: { id: req.user.id }, data });
+    res.json({ success: true, user: safeUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: 'Profile update failed' });
+  }
+});
 
+// POST /api/auth/forgot-password
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      const otp = genOtp();
+      resetOtps.set(email, { otp, expiry: Date.now() + 15 * 60 * 1000, verified: false });
+      await sendEmail(email, 'Reset your Verifind password', resetEmail(otp));
+    }
+    // Always return success to prevent email enumeration
+    res.json({ success: true, message: 'If this email is registered, a reset code was sent.' });
+  } catch (err) {
+    console.error('forgot-password:', err.message);
+    res.status(500).json({ message: 'Failed to process request' });
+  }
+});
+
+// POST /api/auth/verify-otp
+app.post('/api/auth/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const record = resetOtps.get(email);
+    if (!record || Date.now() > record.expiry) return res.status(400).json({ message: 'Code expired or not found' });
+    if (record.otp !== otp) return res.status(400).json({ message: 'Invalid code' });
+    resetOtps.set(email, { ...record, verified: true });
+    res.json({ success: true, message: 'Code verified' });
+  } catch (err) {
+    res.status(500).json({ message: 'Verification failed' });
+  }
+});
+
+// POST /api/auth/reset-password
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+    const record = resetOtps.get(email);
+    if (!record || !record.verified || Date.now() > record.expiry)
+      return res.status(400).json({ message: 'Invalid or expired reset session' });
+    if (record.otp !== otp) return res.status(400).json({ message: 'Invalid code' });
+    const hashed = await bcrypt.hash(password, 12);
+    await prisma.user.update({ where: { email }, data: { password: hashed } });
+    resetOtps.delete(email);
+    res.json({ success: true, message: 'Password updated' });
+  } catch (err) {
+    console.error('reset-password:', err.message);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROPERTY ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GET /api/properties
 app.get('/api/properties', async (req, res) => {
   try {
+    const { district, type, status, listingMode, agentId, search, page = '1', limit = '20' } = req.query;
+    const { minRent, maxRent } = req.query;
+
     const where = {};
-    const { district, type, status, minRent, maxRent } = req.query;
-
-    if (district !== undefined) {
-      if (!VALID_DISTRICTS.includes(district)) return res.status(400).json({ message: 'Invalid district' });
-      where.district = district;
-    }
-    if (type !== undefined) {
-      if (!VALID_TYPES.includes(type)) return res.status(400).json({ message: 'Invalid type' });
-      where.type = type;
-    }
-    if (status !== undefined) {
-      if (!VALID_STATUSES.includes(status)) return res.status(400).json({ message: 'Invalid status' });
-      where.status = toDbStatus(status);
-    }
-    if (minRent !== undefined || maxRent !== undefined) {
+    if (district) where.district = district;
+    if (type) where.type = type;
+    if (status) where.status = status;
+    if (listingMode) where.listingMode = listingMode;
+    if (agentId) where.agentId = agentId;
+    if (minRent || maxRent) {
       where.baseRent = {};
-      if (minRent !== undefined) where.baseRent.gte = Number(minRent);
-      if (maxRent !== undefined) where.baseRent.lte = Number(maxRent);
+      if (minRent) where.baseRent.gte = parseFloat(minRent);
+      if (maxRent) where.baseRent.lte = parseFloat(maxRent);
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { district: { contains: search, mode: 'insensitive' } },
+        { address: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
-    const props = await prisma.property.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: 200
-    });
-    res.json(fmtProps(props));
-  } catch (err) { serverError(res, err); }
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const [total, properties] = await Promise.all([
+      prisma.property.count({ where }),
+      prisma.property.findMany({ where, skip, take, orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }] }),
+    ]);
+
+    res.json({ success: true, properties, total, page: parseInt(page), pages: Math.ceil(total / take) });
+  } catch (err) {
+    console.error('GET /api/properties:', err.message);
+    res.status(500).json({ message: 'Failed to fetch properties' });
+  }
 });
 
-app.post('/api/properties', auth, agentOnly, async (req, res) => {
+// GET /api/properties/:id
+app.get('/api/properties/:id', async (req, res) => {
   try {
-    const allowed = pickAllowed(req.body, PROPERTY_ALLOWED_FIELDS);
+    const property = await prisma.property.findUnique({ where: { id: req.params.id } });
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    res.json({ success: true, property });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch property' });
+  }
+});
 
-    if (!allowed.title?.trim())
-      return res.status(400).json({ message: 'Title is required' });
-    if (!VALID_DISTRICTS.includes(allowed.district))
-      return res.status(400).json({ message: 'Valid Abuja district is required' });
+// POST /api/properties
+app.post('/api/properties', auth, requireRole('agent'), async (req, res) => {
+  try {
+    const {
+      title, description, district, address, type,
+      lat, lng, baseRent, serviceCharge, cautionFee, agencyFee, legalFee,
+      images, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode,
+    } = req.body;
 
-    const base    = Number(allowed.baseRent) || 0;
-    const svc     = Number(allowed.serviceCharge) || 0;
-    const caution = Number(allowed.cautionFee)    || 0;
-    const coords  = DISTRICT_COORDS[allowed.district] || { lat: 9.05, lng: 7.49 };
+    if (!title || !district || !type || !baseRent)
+      return res.status(400).json({ message: 'title, district, type and baseRent are required' });
+    if (!videoUrl)
+      return res.status(400).json({ message: 'A video walkthrough is required for all listings' });
+
+    const rent = parseFloat(baseRent) || 0;
+    const svc = parseFloat(serviceCharge) || 0;
+    const caution = parseFloat(cautionFee) || 0;
+    const agency = parseFloat(agencyFee) || 0;
+    const legal = parseFloat(legalFee) || 0;
+    const totalInitialPayment = rent + svc + caution + agency + legal;
+
+    const agent = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { username: true, businessName: true },
+    });
 
     const property = await prisma.property.create({
       data: {
-        ...allowed,
-        baseRent:    base,
+        title, description, district, address, type,
+        lat: lat ? parseFloat(lat) : null,
+        lng: lng ? parseFloat(lng) : null,
+        baseRent: rent,
         serviceCharge: svc,
-        cautionFee:  caution,
-        agencyFee:   base * 0.1,
-        legalFee:    base * 0.1,
-        totalInitialPayment: base + svc + caution + base * 0.2,
-        lat: coords.lat + (Math.random() - 0.5) * 0.02,
-        lng: coords.lng + (Math.random() - 0.5) * 0.02,
-        agentId:           req.dbUser.id,
-        agentName:         req.dbUser.username,
-        isVerified:        false,
-        verificationStage: 'listing_created',
-        status:            'available',
-      }
+        cautionFee: caution,
+        agencyFee: agency || null,
+        legalFee: legal || null,
+        totalInitialPayment,
+        images: images || [],
+        videoUrl,
+        bedrooms: bedrooms ? parseInt(bedrooms) : null,
+        bathrooms: bathrooms ? parseInt(bathrooms) : null,
+        sqm: sqm ? parseFloat(sqm) : null,
+        furnished: Boolean(furnished),
+        parking: Boolean(parking),
+        listingMode: listingMode || 'Rent',
+        agentId: req.user.id,
+        agentName: agent?.businessName || agent?.username,
+      },
     });
-    res.status(201).json(fmtProp(property));
-  } catch (err) { serverError(res, err); }
+
+    res.status(201).json({ success: true, property });
+  } catch (err) {
+    console.error('POST /api/properties:', err.message);
+    res.status(500).json({ message: 'Failed to create listing' });
+  }
 });
 
-app.get('/api/properties/:id', async (req, res) => {
+// PUT /api/properties/:id
+app.put('/api/properties/:id', auth, requireRole('agent', 'admin'), async (req, res) => {
   try {
-    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
-    if (!prop) return res.status(404).json({ message: 'Property not found' });
-    res.json(fmtProp(prop));
-  } catch (err) { serverError(res, err); }
-});
-
-app.put('/api/properties/:id', auth, agentOnly, async (req, res) => {
-  try {
-    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
-    if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (prop.agentId !== req.dbUser.id && req.dbUser.role !== 'admin')
+    const property = await prisma.property.findUnique({ where: { id: req.params.id } });
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (req.user.role === 'agent' && property.agentId !== req.user.id)
       return res.status(403).json({ message: 'Not your listing' });
 
-    const allowed = pickAllowed(req.body, PROPERTY_ALLOWED_FIELDS);
-    
-    if (allowed.baseRent !== undefined) {
-      const base  = Number(allowed.baseRent) || 0;
-      allowed.agencyFee  = base * 0.1;
-      allowed.legalFee   = base * 0.1;
-      allowed.totalInitialPayment = base + (prop.serviceCharge || 0) + (prop.cautionFee || 0) + base * 0.2;
+    const {
+      title, description, district, address, type,
+      lat, lng, baseRent, serviceCharge, cautionFee, agencyFee, legalFee,
+      images, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode, status,
+    } = req.body;
+
+    const data = {};
+    if (title !== undefined) data.title = title;
+    if (description !== undefined) data.description = description;
+    if (district !== undefined) data.district = district;
+    if (address !== undefined) data.address = address;
+    if (type !== undefined) data.type = type;
+    if (lat !== undefined) data.lat = parseFloat(lat);
+    if (lng !== undefined) data.lng = parseFloat(lng);
+    if (baseRent !== undefined) data.baseRent = parseFloat(baseRent);
+    if (serviceCharge !== undefined) data.serviceCharge = parseFloat(serviceCharge);
+    if (cautionFee !== undefined) data.cautionFee = parseFloat(cautionFee);
+    if (agencyFee !== undefined) data.agencyFee = parseFloat(agencyFee);
+    if (legalFee !== undefined) data.legalFee = parseFloat(legalFee);
+    if (images !== undefined) data.images = images;
+    if (videoUrl !== undefined) data.videoUrl = videoUrl;
+    if (bedrooms !== undefined) data.bedrooms = parseInt(bedrooms);
+    if (bathrooms !== undefined) data.bathrooms = parseInt(bathrooms);
+    if (sqm !== undefined) data.sqm = parseFloat(sqm);
+    if (furnished !== undefined) data.furnished = Boolean(furnished);
+    if (parking !== undefined) data.parking = Boolean(parking);
+    if (listingMode !== undefined) data.listingMode = listingMode;
+    if (status !== undefined) data.status = status;
+
+    if (data.baseRent || data.serviceCharge || data.cautionFee || data.agencyFee || data.legalFee) {
+      const r = data.baseRent ?? property.baseRent;
+      const s = data.serviceCharge ?? property.serviceCharge;
+      const c = data.cautionFee ?? property.cautionFee;
+      const a = data.agencyFee ?? property.agencyFee ?? 0;
+      const l = data.legalFee ?? property.legalFee ?? 0;
+      data.totalInitialPayment = r + s + c + a + l;
     }
-    
-    const updated = await prisma.property.update({
-      where: { id: req.params.id },
-      data: allowed
-    });
-    res.json(fmtProp(updated));
-  } catch (err) { serverError(res, err); }
+
+    const updated = await prisma.property.update({ where: { id: req.params.id }, data });
+    res.json({ success: true, property: updated });
+  } catch (err) {
+    console.error('PUT /api/properties:', err.message);
+    res.status(500).json({ message: 'Failed to update listing' });
+  }
 });
 
-app.delete('/api/properties/:id', auth, agentOnly, async (req, res) => {
+// DELETE /api/properties/:id
+app.delete('/api/properties/:id', auth, requireRole('agent', 'admin'), async (req, res) => {
   try {
-    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
-    if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (prop.agentId !== req.dbUser.id && req.dbUser.role !== 'admin')
+    const property = await prisma.property.findUnique({ where: { id: req.params.id } });
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (req.user.role === 'agent' && property.agentId !== req.user.id)
       return res.status(403).json({ message: 'Not your listing' });
     await prisma.property.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Deleted' });
-  } catch (err) { serverError(res, err); }
+    res.json({ success: true, message: 'Listing deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to delete listing' });
+  }
 });
 
-app.post('/api/properties/:id/verify', auth, agentOnly, async (req, res) => {
+// ═══════════════════════════════════════════════════════════════════════════
+// BOOKING ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// POST /api/bookings
+app.post('/api/bookings', auth, requireRole('tenant'), async (req, res) => {
   try {
-    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
-    if (!prop) return res.status(404).json({ message: 'Not found' });
-    if (req.dbUser.role === 'agent' && prop.agentId !== req.dbUser.id)
-      return res.status(403).json({ message: 'Not your listing' });
+    const { propertyId, requestedDate } = req.body;
+    if (!propertyId || !requestedDate)
+      return res.status(400).json({ message: 'propertyId and requestedDate are required' });
 
-    const idx  = VERIFICATION_STAGES.indexOf(prop.verificationStage);
-    const next = VERIFICATION_STAGES[idx + 1];
-    if (!next) return res.status(400).json({ message: 'Already fully verified' });
-
-    const updated = await prisma.property.update({
-      where: { id: req.params.id },
-      data: { verificationStage: next, isVerified: next === 'verified' }
-    });
-    res.json(fmtProp(updated));
-  } catch (err) { serverError(res, err); }
-});
-
-app.post('/api/properties/:id/book-inspection', auth, async (req, res) => {
-  try {
-    const prop = await prisma.property.findUnique({ where: { id: req.params.id } });
-    if (!prop) return res.status(404).json({ message: 'Not found' });
-    res.json({ success: true, property: fmtProp(prop) });
-  } catch (err) { serverError(res, err); }
-});
-
-// ─── PAYSTACK PAYMENTS ────────────────────────────────────────────────────────
-
-app.post('/api/payments/initialize', auth, async (req, res) => {
-  try {
-    if (!PAYSTACK_SECRET) return res.status(500).json({ message: 'Payment not configured' });
-    const { propertyId, inspectionDate } = req.body;
-    if (!propertyId) return res.status(400).json({ message: 'Property ID required' });
-
-    // Fetch full user record (auth middleware only decodes the JWT)
-    const tenant = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (!tenant) return res.status(404).json({ message: 'User not found' });
-
-    const insDate = inspectionDate ? new Date(inspectionDate) : null;
     const property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) return res.status(404).json({ message: 'Property not found' });
-    if (property.status !== 'available') return res.status(400).json({ message: 'This property is no longer available' });
 
-    const amountMajor = property.totalInitialPayment;
-    const amount = amountMajor * 100;
-    const reference = `VF-${Date.now()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const tenant = await prisma.user.findUnique({ where: { id: req.user.id }, select: { username: true } });
 
-    const paystackData = await paystackRequest('POST', '/transaction/initialize', {
-      email: tenant.email, amount, reference,
-      callback_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/#/payment/verify/${reference}`,
-      metadata: { propertyId, propertyTitle: property.title, tenantId: tenant.id, agentId: property.agentId }
+    const booking = await prisma.booking.create({
+      data: {
+        propertyId,
+        tenantId: req.user.id,
+        agentId: property.agentId,
+        requestedDate: new Date(requestedDate),
+        propertyTitle: property.title,
+        tenantName: tenant?.username,
+      },
     });
 
-    const releaseDate = new Date(Date.now() + (insDate ? 0 : 24 * 60 * 60 * 1000) + RELEASE_HOURS * 60 * 60 * 1000);
+    res.status(201).json({ success: true, booking });
+  } catch (err) {
+    console.error('POST /api/bookings:', err.message);
+    res.status(500).json({ message: 'Failed to create booking' });
+  }
+});
+
+// GET /api/bookings
+app.get('/api/bookings', auth, async (req, res) => {
+  try {
+    const where = req.user.role === 'tenant' ? { tenantId: req.user.id } : { agentId: req.user.id };
+    const bookings = await prisma.booking.findMany({ where, orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, bookings });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch bookings' });
+  }
+});
+
+// PUT /api/bookings/:id
+app.put('/api/bookings/:id', auth, requireRole('agent'), async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id: req.params.id } });
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    if (booking.agentId !== req.user.id) return res.status(403).json({ message: 'Not your booking' });
+
+    const { status, agentNote, proposedDate } = req.body;
+    const data = {};
+    if (status) data.status = status;
+    if (agentNote !== undefined) data.agentNote = agentNote;
+    if (proposedDate) data.requestedDate = new Date(proposedDate);
+
+    const updated = await prisma.booking.update({ where: { id: req.params.id }, data });
+    res.json({ success: true, booking: updated });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update booking' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PAYMENT / ESCROW ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// POST /api/payments/initialize
+app.post('/api/payments/initialize', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    const { propertyId } = req.body;
+    const property = await prisma.property.findUnique({ where: { id: propertyId } });
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+    if (!property.totalInitialPayment) return res.status(400).json({ message: 'Property has no price set' });
+
+    const amountKobo = Math.round(property.totalInitialPayment * 100);
+    const reference = `vrf_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    const description = `Escrow: ${property.title}`;
+
+    const paystackData = await psPost('/transaction/initialize', {
+      email: req.user.email,
+      amount: amountKobo,
+      reference,
+      callback_url: `${process.env.FRONTEND_URL || ''}/payment/callback`,
+      metadata: { propertyId, tenantId: req.user.id, agentId: property.agentId },
+    });
 
     await prisma.payment.create({
       data: {
         reference,
         propertyId,
-        tenantId:   tenant.id,
-        agentId:    property.agentId,
-        amount:     amountMajor,
-        amountKobo: amount,
-        status:     'pending',
-        inspectionDate: insDate,
-        releaseDate,
+        tenantId: req.user.id,
+        agentId: property.agentId,
+        amount: property.totalInitialPayment,
+        amountKobo,
+        description,
         propertyTitle: property.title,
-        agentName:     property.agentName,
-        tenantEmail:   tenant.email
-      }
+        agentName: property.agentName,
+        tenantEmail: req.user.email,
+        paystackData,
+      },
     });
 
-    res.json({ reference, authorizationUrl: paystackData.authorization_url, accessCode: paystackData.access_code, amount: amountMajor, propertyTitle: property.title, releaseDate: releaseDate.toISOString() });
-  } catch (err) { serverError(res, err); }
+    res.json({ success: true, authorizationUrl: paystackData.authorization_url, reference });
+  } catch (err) {
+    console.error('payment/initialize:', err.message);
+    res.status(500).json({ message: err.message || 'Failed to initialize payment' });
+  }
 });
 
+// GET /api/payments/verify/:reference
 app.get('/api/payments/verify/:reference', auth, async (req, res) => {
   try {
+    const paystackData = await psGet(`/transaction/verify/${req.params.reference}`);
     const payment = await prisma.payment.findUnique({ where: { reference: req.params.reference } });
-    if (!payment) return res.status(404).json({ message: 'Payment not found' });
-    if (payment.tenantId !== req.user.id) return res.status(403).json({ message: 'Forbidden' });
+    if (!payment) return res.status(404).json({ message: 'Payment record not found' });
 
-    if (payment.status !== 'pending') return res.json({ status: payment.status, payment });
-
-    const txData = await paystackRequest('GET', `/transaction/verify/${req.params.reference}`);
-    if (txData.status === 'success') {
-      await prisma.payment.update({ where: { id: payment.id }, data: { status: 'confirmed', paystackData: txData } });
-      await prisma.property.update({ where: { id: payment.propertyId }, data: { status: 'under_offer' } });
-      return res.json({ status: 'confirmed', payment });
+    if (paystackData.status === 'success' && payment.status === 'pending') {
+      await Promise.all([
+        prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'confirmed', paystackData },
+        }),
+        prisma.property.update({
+          where: { id: payment.propertyId },
+          data: { status: 'under_offer' },
+        }),
+      ]);
     }
-    res.json({ status: txData.status, payment });
-  } catch (err) { serverError(res, err); }
+
+    res.json({ success: true, payment: { ...payment, paystackData } });
+  } catch (err) {
+    console.error('payment/verify:', err.message);
+    res.status(500).json({ message: 'Failed to verify payment' });
+  }
 });
 
+// POST /api/payments/confirm-movein/:paymentId
+app.post('/api/payments/confirm-movein/:paymentId', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    const payment = await prisma.payment.findUnique({ where: { id: req.params.paymentId } });
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    if (payment.tenantId !== req.user.id) return res.status(403).json({ message: 'Not your payment' });
+    if (payment.status !== 'confirmed') return res.status(400).json({ message: 'Payment is not in confirmed state' });
+
+    const agentBank = await prisma.agentBank.findUnique({ where: { agentId: payment.agentId } });
+    if (!agentBank) return res.status(400).json({ message: "Agent has not set up their bank account yet" });
+
+    const transfer = await psPost('/transfer', {
+      source: 'balance',
+      amount: payment.amountKobo,
+      recipient: agentBank.recipientCode,
+      reason: `Verifind escrow release: ${payment.propertyTitle || payment.propertyId}`,
+      reference: `rel_${payment.reference}`,
+    });
+
+    await Promise.all([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'releasing',
+          tenantConfirmedMoveIn: true,
+          moveInConfirmedAt: new Date(),
+          transferReference: transfer.reference || `rel_${payment.reference}`,
+          recipientCode: agentBank.recipientCode,
+        },
+      }),
+      prisma.property.update({
+        where: { id: payment.propertyId },
+        data: { status: 'rented' },
+      }),
+    ]);
+
+    res.json({ success: true, message: 'Move-in confirmed. Funds are being released to the agent.' });
+  } catch (err) {
+    console.error('confirm-movein:', err.message);
+    res.status(500).json({ message: err.message || 'Failed to confirm move-in' });
+  }
+});
+
+// GET /api/payments
 app.get('/api/payments', auth, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    const payments = await prisma.payment.findMany({
-      where: user.role === 'agent' ? { agentId: user.id } : { tenantId: user.id },
-      orderBy: { createdAt: 'desc' }
-    });
-    res.json(payments);
-  } catch (err) { serverError(res, err); }
+    const where = req.user.role === 'tenant'
+      ? { tenantId: req.user.id }
+      : { agentId: req.user.id };
+    const payments = await prisma.payment.findMany({ where, orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, payments });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch payments' });
+  }
 });
 
-// ─── AGENT BANK ROUTES ────────────────────────────────────────────────────────
-
-app.get('/api/banks', async (req, res) => {
+// POST /api/payments/webhook
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
-    const data = await paystackRequest('GET', '/bank?currency=NGN&country=nigeria');
-    res.json({ banks: data.map(b => ({ code: b.code, name: b.name })) });
-  } catch (err) { serverError(res, err); }
+    const crypto = require('crypto');
+    const hash = crypto.createHmac('sha512', PAYSTACK_SECRET).update(req.body).digest('hex');
+    if (hash !== req.headers['x-paystack-signature']) return res.status(400).send('Bad signature');
+
+    const event = JSON.parse(req.body.toString());
+    console.log('Webhook event:', event.event);
+
+    if (event.event === 'charge.success') {
+      const ref = event.data?.reference;
+      const payment = await prisma.payment.findUnique({ where: { reference: ref } });
+      if (payment && payment.status === 'pending') {
+        await Promise.all([
+          prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'confirmed', paystackData: event.data },
+          }),
+          prisma.property.update({
+            where: { id: payment.propertyId },
+            data: { status: 'under_offer' },
+          }),
+        ]);
+      }
+    }
+
+    if (event.event === 'transfer.success') {
+      const ref = event.data?.reference;
+      const payment = await prisma.payment.findFirst({ where: { transferReference: ref } });
+      if (payment) {
+        await prisma.payment.update({ where: { id: payment.id }, data: { status: 'released' } });
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('webhook:', err.message);
+    res.sendStatus(500);
+  }
 });
 
-app.post('/api/banks/resolve', auth, async (req, res) => {
+// ═══════════════════════════════════════════════════════════════════════════
+// BANK ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GET /api/banks
+app.get('/api/banks', auth, async (req, res) => {
+  try {
+    const banks = await psGet('/bank?country=nigeria&perPage=100');
+    res.json({ success: true, banks });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch banks' });
+  }
+});
+
+// POST /api/banks/verify-account
+app.post('/api/banks/verify-account', auth, async (req, res) => {
   try {
     const { accountNumber, bankCode } = req.body;
-    const data = await paystackRequest('GET', `/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`);
-    res.json({ accountName: data.account_name });
-  } catch (err) { res.status(400).json({ message: 'Could not verify account.' }); }
+    const data = await psGet(`/bank/resolve?account_number=${accountNumber}&bank_code=${bankCode}`);
+    res.json({ success: true, accountName: data.account_name });
+  } catch (err) {
+    res.status(400).json({ message: 'Could not verify account' });
+  }
 });
 
-app.post('/api/banks/setup', auth, agentOnly, async (req, res) => {
+// POST /api/banks/setup
+app.post('/api/banks/setup', auth, requireRole('agent'), async (req, res) => {
   try {
     const { bankCode, bankName, accountNumber, accountName } = req.body;
-    const recipient = await paystackRequest('POST', '/transferrecipient', {
-      type: 'nuban', name: accountName, account_number: accountNumber, bank_code: bankCode, currency: 'NGN'
-    });
-    const bank = await prisma.agentBank.findUnique({ where: { agentId: req.dbUser.id } });
-    if (bank) return res.status(409).json({ message: 'Bank details already exist' });
+    if (!bankCode || !bankName || !accountNumber || !accountName)
+      return res.status(400).json({ message: 'All bank fields are required' });
 
-    const newBank = await prisma.agentBank.create({
-      data: {
-        agentId:       req.dbUser.id,
-        bankCode,
-        bankName,
-        accountNumber,
-        accountName,
+    const recipient = await psPost('/transferrecipient', {
+      type: 'nuban',
+      name: accountName,
+      account_number: accountNumber,
+      bank_code: bankCode,
+      currency: 'NGN',
+    });
+
+    const agentBank = await prisma.agentBank.upsert({
+      where: { agentId: req.user.id },
+      create: {
+        agentId: req.user.id,
+        bankCode, bankName, accountNumber, accountName,
         recipientCode: recipient.recipient_code,
-      }
+      },
+      update: {
+        bankCode, bankName, accountNumber, accountName,
+        recipientCode: recipient.recipient_code,
+      },
     });
-    res.status(201).json(newBank);
-  } catch (err) { serverError(res, err); }
-});
 
-app.get('/api/banks/setup', auth, agentOnly, async (req, res) => {
-  try {
-    const bank = await prisma.agentBank.findUnique({ where: { agentId: req.dbUser.id } });
-    if (!bank) return res.json({ configured: false });
-    res.json({ configured: true, bankName: bank.bankName, accountName: bank.accountName, accountNumber: bank.accountNumber.replace(/\d(?=\d{4})/g, '*') });
-  } catch (err) { serverError(res, err); }
-});
-
-// ─── STATUS ───────────────────────────────────────────────────────────────────
-// ─── SERVE FRONTEND (PRODUCTION) ────────────────────────────────────────────────
-const frontendPath = path.join(__dirname, '../frontend/dist');
-app.use(express.static(frontendPath));
-
-app.get('/api/status', async (req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.json({ status: 'running', version: '2.0.0', db: 'connected' });
-  } catch {
-    res.status(503).json({ status: 'running', version: '2.0.0', db: 'disconnected' });
+    res.json({ success: true, agentBank });
+  } catch (err) {
+    console.error('bank/setup:', err.message);
+    res.status(500).json({ message: err.message || 'Failed to setup bank account' });
   }
 });
 
-// React fallback routing MUST be after all API routes
-app.get('*', (req, res) => {
-  // If the browser is asking for an asset that doesn't exist, don't return index.html
-  // Otherwise the browser throws "Strict MIME type checking" CSS errors!
-  if (req.path.match(/\.(js|css|png|jpg|jpeg|svg|ico|json|map)$/)) {
-    return res.status(404).send('Not found');
+// GET /api/banks/my
+app.get('/api/banks/my', auth, requireRole('agent'), async (req, res) => {
+  try {
+    const agentBank = await prisma.agentBank.findUnique({ where: { agentId: req.user.id } });
+    res.json({ success: true, agentBank });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch bank details' });
   }
-
-  res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
-    if (err) {
-      res.status(500).send(`
-        <div style="font-family: sans-serif; padding: 40px; text-align: center;">
-          <h2>⚠️ Frontend Build Not Found</h2>
-          <p>The backend API is running successfully, but the React frontend (<code>index.html</code>) is missing.</p>
-          <p>To fix this, go to your <b>Render Dashboard</b>, open this Web Service, and change the <b>Build Command</b> to:</p>
-          <code style="background: #eee; padding: 8px; border-radius: 4px; font-size: 16px;">npm install && npm run build</code>
-        </div>
-      `);
-    }
-  });
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🚀 Verifind API  →  http://localhost:${PORT}`);
-  console.log(`   Allowed origins: ${ALLOWED_ORIGINS.join(', ')}\n`);
+// ═══════════════════════════════════════════════════════════════════════════
+// ADMIN ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/agents
+app.get('/api/admin/agents', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const agents = await prisma.user.findMany({
+      where: { role: 'agent' },
+      select: {
+        id: true, username: true, email: true, phone: true,
+        businessName: true, isKycVerified: true, nin: true,
+        driverLicenseUrl: true, cacDocUrl: true,
+        isEmailVerified: true, createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ success: true, agents });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch agents' });
+  }
 });
+
+// PUT /api/admin/agents/:id/kyc
+app.put('/api/admin/agents/:id/kyc', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const user = await prisma.user.update({
+      where: { id: req.params.id },
+      data: { isKycVerified: Boolean(req.body.approved) },
+    });
+    res.json({ success: true, user: safeUser(user) });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update KYC' });
+  }
+});
+
+// GET /api/admin/properties
+app.get('/api/admin/properties', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const properties = await prisma.property.findMany({ orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, properties });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch properties' });
+  }
+});
+
+// PUT /api/admin/properties/:id/verify
+app.put('/api/admin/properties/:id/verify', auth, requireRole('admin'), async (req, res) => {
+  try {
+    const { verified, verificationStage } = req.body;
+    const property = await prisma.property.update({
+      where: { id: req.params.id },
+      data: {
+        isVerified: Boolean(verified),
+        verificationStage: verificationStage || (verified ? 'verified' : 'listing_created'),
+      },
+    });
+    res.json({ success: true, property });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update verification' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATIC SERVE
+// ═══════════════════════════════════════════════════════════════════════════
+const DIST = path.join(__dirname, '../frontend/dist');
+app.use(express.static(DIST));
+app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
+
+// ═══════════════════════════════════════════════════════════════════════════
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Verifind V2 — port ${PORT}`));

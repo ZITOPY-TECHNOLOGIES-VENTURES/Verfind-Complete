@@ -8,6 +8,55 @@ Junior Dev: zimaofficial-web
 
 ---
 
+## 2026-04-28 — V2 REBUILD
+
+### Architecture
+- **V1 archived as `v1` git tag** — preserved forever.
+- **V2 branch created** — all development now happens on `v2`. main = V1.
+- Change Render deploy branch to `v2` after this push.
+
+### Backend (backend/server.js — complete rewrite)
+- **No legacy cruft** — clean Express server, ~500 lines
+- Auth: send-otp, verify-email, login (verified users only), me, update-me, forgot-password, verify-otp, reset-password (all 8 routes fully implemented)
+- Properties: CRUD + mandatory video validation (400 if no videoUrl)
+- Bookings: tenant requests, agent accept/reschedule/cancel
+- Payments: Paystack escrow + tenant move-in confirmation before fund release
+- Banks: list, verify-account, setup (Paystack recipient), my
+- Admin: agents KYC approve/revoke, property verify/unverify
+
+### Prisma schema (backend/prisma/schema.prisma — updated)
+- **PropertyType enum** updated to match original brief:
+  `Self_contain | One_bedroom | Two_bedroom | Three_bedroom | Detached_duplex`
+- **User model**: added `businessName`, `isPhoneVerified`, `driverLicenseUrl`, `cacDocUrl`, `currentAddress`, `ninUrl`
+- **PendingReg model**: added `phone`, `nin`
+- **Property model**: `videoUrl` now required (NOT NULL); added `listingMode`, `isFeatured`
+- **Payment model**: added `tenantConfirmedMoveIn`, `moveInConfirmedAt` (escrow release trigger)
+- **Booking model**: new — `propertyId`, `tenantId`, `agentId`, `requestedDate`, `status`, `agentNote`
+
+> ⚠️ DB MIGRATION: Schema changes require `prisma migrate reset` against a fresh DB.
+> On Render: reset the PostgreSQL database, then redeploy — `prisma migrate deploy` runs automatically.
+
+### Frontend (complete rewrite — no mock engine)
+- `frontend/services/api.ts` — thin fetch wrapper, no offline fallback
+- `frontend/contexts/AuthContext.tsx` — clean, JWT-based
+- `frontend/contexts/ThemeContext.tsx` — clean dark/light toggle
+- `frontend/App.tsx` — route guards (PrivateRoute, PublicRoute)
+- **Pages**: Home, Login, Register (role-split), ForgotPassword (3-step), Dashboard, AgentDashboard, AdminDashboard
+- **Components**: PropertyCard, PropertyDetail (video embed + Total Package), PaymentModal, BookingCalendar, AgentBankSetup
+- Removed: IndexedDB mock engine (idb), Gemini AI service, react-markdown
+- `frontend/package.json` — removed `@google/genai`, `idb`, `react-markdown`
+
+### Key correctness fixes vs V1
+- Property types now match the original brief (Self-contain, 1-Bed, 2-Bed, 3-Bed, Detached Duplex)
+- Video walkthrough is now **mandatory** — agents can't list without it
+- Escrow releases on **tenant move-in confirmation**, not 48h timer
+- Forgot password is fully implemented (was a stub in V1)
+- Admin dashboard fully implemented (was an empty div in V1)
+
+(rraammsseeyy / Claude)
+
+---
+
 ## 2026-05-01
 
 ### Fixed

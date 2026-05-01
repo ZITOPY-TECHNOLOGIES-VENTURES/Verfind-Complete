@@ -1,50 +1,62 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import Dashboard from './pages/Dashboard';
-import AuthFlow from './pages/AuthFlow';
-import Home from './pages/Home';
-import LiquidBackground from './components/LiquidBackground';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-// Import Info Pages
-import { 
-  RentPage, BuyPage, SellPage, VerifyPage, 
-  AboutPage, HowPage, ContactPage, HelpPage 
-} from './pages/InfoPages';
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
-const App: React.FC = () => {
+function Loader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <div className="animate-spin" style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border-color)', borderTopColor: 'var(--color-primary)' }} />
+    </div>
+  );
+}
+
+function PrivateRoute({ children, role }: { children: React.ReactNode; role?: string | string[] }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (role) {
+    const allowed = Array.isArray(role) ? role : [role];
+    if (!allowed.includes(user.role)) return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <Loader />;
+  if (user) {
+    if (user.role === 'agent') return <Navigate to="/agent" replace />;
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
+export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <LiquidBackground />
+      <BrowserRouter>
+        <Suspense fallback={<Loader />}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-
-            {/* Info Pages Routes */}
-            <Route path="/rent" element={<RentPage />} />
-            <Route path="/buy" element={<BuyPage />} />
-            <Route path="/sell" element={<SellPage />} />
-            <Route path="/verify" element={<VerifyPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/how" element={<HowPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/help" element={<HelpPage />} />
-
-            {/* New centralized auth router */}
-            <Route path="/login" element={<AuthFlow />} />
-            <Route path="/register" element={<AuthFlow />} />
-            <Route path="/forgot-password" element={<AuthFlow />} />
-            <Route path="/reset-password" element={<AuthFlow />} />
-
-            {/* Maintenance / placeholders */}
-            <Route path="/pricing" element={<div className="p-20 text-white font-black text-center">PRICING PAGE - COMING SOON</div>} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/dashboard" element={<PrivateRoute role="tenant"><Dashboard /></PrivateRoute>} />
+            <Route path="/agent" element={<PrivateRoute role="agent"><AgentDashboard /></PrivateRoute>} />
+            <Route path="/admin" element={<PrivateRoute role="admin"><AdminDashboard /></PrivateRoute>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </div>
-      </Router>
+        </Suspense>
+      </BrowserRouter>
     </AuthProvider>
   );
-};
-
-export default App;
+}

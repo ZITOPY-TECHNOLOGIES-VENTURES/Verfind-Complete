@@ -1,190 +1,130 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Loader2, Building2, Lock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 
 interface Bank { code: string; name: string; }
+interface AgentBank { bankName: string; accountNumber: string; accountName: string; }
 
-export const AgentBankSetup: React.FC = () => {
-  const [banks,        setBanks]       = useState<Bank[]>([]);
-  const [bankCode,     setBankCode]    = useState('');
-  const [bankName,     setBankName]    = useState('');
-  const [accountNum,   setAccountNum]  = useState('');
-  const [accountName,  setAccountName] = useState('');
-  const [resolving,    setResolving]   = useState(false);
-  const [saving,       setSaving]      = useState(false);
-  const [saved,        setSaved]       = useState(false);
-  const [error,        setError]       = useState('');
-  const [existing,     setExisting]    = useState<{bankName:string;accountName:string;accountNumber:string}|null>(null);
+export default function AgentBankSetup() {
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [existing, setExisting] = useState<AgentBank | null>(null);
+  const [bankCode, setBankCode] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    // Load bank list and existing setup in parallel
     Promise.all([
-      api.get('/api/banks'),
-      api.get('/api/banks/setup'),
-    ]).then(([banksRes, setupRes]) => {
-      setBanks((banksRes.data as any)?.banks || []);
-      const setup = setupRes.data as any;
-      if (setup?.configured) setExisting(setup);
-    }).catch(() => {});
+      api.get<{ banks: Bank[] }>('/api/banks'),
+      api.get<{ agentBank: AgentBank | null }>('/api/banks/my'),
+    ]).then(([bRes, eRes]) => {
+      setBanks(bRes.banks || []);
+      if (eRes.agentBank) setExisting(eRes.agentBank);
+    }).catch(console.error);
   }, []);
 
-  // Auto-resolve account name when account number + bank are both filled
-  useEffect(() => {
-    if (accountNum.length === 10 && bankCode) {
-      resolveAccount();
-    } else {
-      setAccountName('');
-    }
-  }, [accountNum, bankCode]);
-
-  const resolveAccount = async () => {
-    setResolving(true);
+  async function verifyAccount() {
+    if (accountNumber.length !== 10 || !bankCode) return;
+    setVerifying(true);
+    setAccountName('');
     setError('');
     try {
-      const res = await api.post('/api/banks/resolve', { accountNumber: accountNum, bankCode }) as any;
-      setAccountName((res.data as any)?.accountName || '');
-    } catch {
-      setAccountName('');
-      setError('Could not verify this account. Check the number and bank selection.');
-    } finally {
-      setResolving(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setError('');
-    if (!bankCode || !accountNum || !accountName)
-      return setError('Please fill all fields and verify your account number.');
-
-    setSaving(true);
-    try {
-      await api.post('/api/banks/setup', { bankCode, bankName, accountNumber: accountNum, accountName });
-      setSaved(true);
-      setExisting({ bankName, accountName, accountNumber: accountNum.replace(/\d(?=\d{4})/g, '*') });
+      const res = await api.post<{ accountName: string }>('/api/banks/verify-account', { accountNumber, bankCode });
+      setAccountName(res.accountName);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to save bank details. Please try again.');
+      setError('Could not verify account — check the number and bank');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!accountName) { setError('Please verify your account number first'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await api.post('/api/banks/setup', { bankCode, bankName, accountNumber, accountName });
+      setSuccess('Bank account saved successfully!');
+      setExisting({ bankName, accountNumber, accountName });
+    } catch (err: any) {
+      setError(err.message || 'Failed to save bank details');
     } finally {
       setSaving(false);
     }
-  };
-
-  const inp: React.CSSProperties = {
-    width: '100%', padding: '11px 14px', borderRadius: 12,
-    border: '1px solid var(--border-color)', background: 'var(--bg-surface)',
-    color: 'var(--text-primary)', fontFamily: "'DM Sans',sans-serif",
-    fontSize: 14, outline: 'none',
-  };
-  const lbl: React.CSSProperties = {
-    display: 'block', fontSize: 11, fontWeight: 700,
-    textTransform: 'uppercase', letterSpacing: '0.1em',
-    color: 'var(--text-muted)', marginBottom: 6,
-  };
-
-  if (saved) return (
-    <div style={{ padding: '24px', borderRadius: 20, background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.20)', textAlign: 'center' }}>
-      <CheckCircle2 size={32} style={{ color: '#059669', display: 'block', margin: '0 auto 12px' }} />
-      <div style={{ fontWeight: 700, color: '#059669', fontSize: 15 }}>Bank account saved!</div>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>
-        Paystack will send your payments directly to this account when funds are released.
-      </div>
-    </div>
-  );
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ maxWidth: 520 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 6px', color: 'var(--text-primary)' }}>Bank Account Setup</h2>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>
+        Add your bank account to receive escrow payments from tenants.
+      </p>
 
-      {/* Header */}
-      <div>
-        <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 22, fontWeight: 400, color: 'var(--text-primary)', letterSpacing: '-0.02em', margin: '0 0 6px' }}>
-          Payout Account
-        </h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          This is the account Paystack sends your rental payments to, 48hrs after each inspection is confirmed. You must set this up before tenants can pay.
-        </p>
-      </div>
-
-      {/* Existing account display */}
-      {existing && !saved && (
-        <div style={{ padding: '16px', borderRadius: 14, background: 'rgba(27,79,216,0.06)', border: '1px solid rgba(27,79,216,0.14)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--color-primary)', marginBottom: 8 }}>Current Account</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{existing.accountName}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{existing.bankName} · {existing.accountNumber}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Fill the form below to update your account.</div>
+      {existing && (
+        <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 14, padding: '14px 18px', marginBottom: 24 }}>
+          <div style={{ fontWeight: 700, color: '#166534', marginBottom: 4 }}>✓ Bank account on file</div>
+          <div style={{ fontSize: 14, color: '#166534' }}>{existing.bankName} · {existing.accountNumber} · {existing.accountName}</div>
+          <div style={{ fontSize: 12, color: '#16a34a', marginTop: 6 }}>You can update your account by filling the form below.</div>
         </div>
       )}
 
       {error && (
-        <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 13, display: 'flex', gap: 8, alignItems: 'center' }}>
-          <AlertCircle size={14} /> {error}
+        <div style={{ background: 'rgba(232,76,61,.1)', border: '1px solid rgba(232,76,61,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#E84C3D', fontSize: 14 }}>
+          {error}
+        </div>
+      )}
+      {success && (
+        <div style={{ background: '#dcfce7', border: '1px solid #bbf7d0', borderRadius: 12, padding: '12px 14px', marginBottom: 16, color: '#166534', fontSize: 14, fontWeight: 600 }}>
+          {success}
         </div>
       )}
 
-      {/* Form */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label style={lbl}>Bank</label>
-          <select
-            value={bankCode}
-            onChange={e => {
-              setBankCode(e.target.value);
-              setBankName(banks.find(b => b.code === e.target.value)?.name || '');
-            }}
-            style={{ ...inp, appearance: 'none' as any, cursor: 'pointer' }}
-          >
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Bank *</label>
+          <select value={bankCode} onChange={e => {
+            const opt = banks.find(b => b.code === e.target.value);
+            setBankCode(e.target.value);
+            setBankName(opt?.name || '');
+            setAccountName('');
+          }} required>
             <option value="">Select your bank</option>
             {banks.map(b => <option key={b.code} value={b.code}>{b.name}</option>)}
           </select>
         </div>
 
         <div>
-          <label style={lbl}>Account Number (10 digits)</label>
-          <div style={{ position: 'relative' }}>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>Account Number *</label>
+          <div style={{ display: 'flex', gap: 10 }}>
             <input
-              type="text"
-              value={accountNum}
-              onChange={e => setAccountNum(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              value={accountNumber}
+              onChange={e => { setAccountNumber(e.target.value.replace(/\D/g, '')); setAccountName(''); }}
               placeholder="0123456789"
               maxLength={10}
-              style={inp}
+              required
+              style={{ flex: 1 }}
             />
-            {resolving && (
-              <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }}>
-                <Loader2 size={16} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
-              </div>
-            )}
+            <button type="button" onClick={verifyAccount} disabled={verifying || accountNumber.length !== 10 || !bankCode}
+              style={{ padding: '11px 16px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 12, cursor: 'pointer', fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap', color: 'var(--text-primary)', opacity: (accountNumber.length !== 10 || !bankCode) ? 0.5 : 1 }}>
+              {verifying ? '…' : 'Verify'}
+            </button>
           </div>
         </div>
 
-        {/* Account name — auto-filled by Paystack resolution */}
-        <div>
-          <label style={lbl}>Account Name (auto-verified)</label>
-          <div style={{ ...inp, background: accountName ? 'rgba(5,150,105,0.06)' : 'var(--bg-surface)', border: `1px solid ${accountName ? 'rgba(5,150,105,0.30)' : 'var(--border-color)'}`, color: accountName ? '#059669' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            {accountName ? (
-              <><CheckCircle2 size={14} style={{ color: '#059669', flexShrink: 0 }} /> {accountName}</>
-            ) : resolving ? (
-              <><Loader2 size={14} className="animate-spin" style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> Verifying…</>
-            ) : (
-              <span style={{ opacity: 0.5, fontSize: 13 }}>Filled automatically when you enter your account number</span>
-            )}
+        {accountName && (
+          <div style={{ background: '#dcfce7', borderRadius: 12, padding: '12px 14px', fontSize: 14, color: '#166534', fontWeight: 600 }}>
+            ✓ {accountName}
           </div>
-        </div>
+        )}
 
-        {/* Security note */}
-        <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.04)', alignItems: 'flex-start' }}>
-          <Lock size={13} style={{ color: 'var(--text-muted)', flexShrink: 0, marginTop: 2 }} />
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-            Your account details are sent directly to Paystack and stored as a transfer recipient. Verifind never stores your full account number in plain text.
-          </p>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving || !accountName || !bankCode}
-          style={{ padding: '13px', borderRadius: 14, background: 'var(--color-primary)', color: '#fff', border: 'none', cursor: saving || !accountName || !bankCode ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans',sans-serif", fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: saving || !accountName || !bankCode ? 0.6 : 1 }}
-        >
-          {saving ? <><Loader2 size={16} className="animate-spin" /> Saving…</> : <><Building2 size={16} /> Save Payout Account</>}
+        <button type="submit" disabled={saving || !accountName} style={{ padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: (saving || !accountName) ? 'not-allowed' : 'pointer', opacity: (saving || !accountName) ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : 'Save Bank Account'}
         </button>
-      </div>
+      </form>
     </div>
   );
-};
+}

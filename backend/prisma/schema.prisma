@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -17,10 +14,11 @@ enum Role {
 }
 
 enum PropertyType {
-  Apartment
-  House
-  Duplex
-  Bungalow
+  Self_contain
+  One_bedroom
+  Two_bedroom
+  Three_bedroom
+  Detached_duplex
 }
 
 enum PropertyStatus {
@@ -54,19 +52,25 @@ enum PaymentStatus {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  username        String
-  email           String   @unique
-  password        String
-  role            Role     @default(tenant)
-  isEmailVerified Boolean  @default(false)
-  isKycVerified   Boolean  @default(false)
-  phone           String?
-  agencyName      String?
-  nin             String?
-  whatsappNumber  String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default(uuid())
+  username          String
+  email             String   @unique
+  password          String
+  role              Role     @default(tenant)
+  isEmailVerified   Boolean  @default(false)
+  isKycVerified     Boolean  @default(false)
+  phone             String?
+  isPhoneVerified   Boolean  @default(false)
+  // Agent KYC fields
+  businessName      String?
+  nin               String?
+  driverLicenseUrl  String?
+  cacDocUrl         String?
+  // Tenant KYC fields
+  currentAddress    String?
+  ninUrl            String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model PendingReg {
@@ -75,6 +79,8 @@ model PendingReg {
   email     String   @unique
   password  String
   role      Role     @default(tenant)
+  phone     String?
+  nin       String?
   otp       String
   otpExpiry DateTime
   attempts  Int      @default(0)
@@ -88,7 +94,7 @@ model Property {
   description         String?
   district            String
   address             String?
-  type                PropertyType      @default(Apartment)
+  type                PropertyType      @default(Self_contain)
   lat                 Float?
   lng                 Float?
   baseRent            Float
@@ -98,12 +104,14 @@ model Property {
   legalFee            Float?
   totalInitialPayment Float?
   images              String[]
-  videoUrl            String?
+  videoUrl            String
   bedrooms            Int?
   bathrooms           Int?
   sqm                 Float?
   furnished           Boolean           @default(false)
   parking             Boolean           @default(false)
+  listingMode         String            @default("Rent")
+  isFeatured          Boolean           @default(false)
   agentId             String
   agentName           String?
   isVerified          Boolean           @default(false)
@@ -111,6 +119,20 @@ model Property {
   status              PropertyStatus    @default(available)
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+}
+
+model Booking {
+  id            String   @id @default(uuid())
+  propertyId    String
+  tenantId      String
+  agentId       String
+  requestedDate DateTime
+  status        String   @default("pending")
+  agentNote     String?
+  propertyTitle String?
+  tenantName    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model Transaction {
@@ -127,25 +149,27 @@ model Transaction {
 }
 
 model Payment {
-  id                String        @id @default(uuid())
-  reference         String        @unique
-  propertyId        String
-  tenantId          String
-  agentId           String
-  amount            Float
-  amountKobo        Float
-  description       String?
-  status            PaymentStatus @default(pending)
-  inspectionDate    DateTime?
-  releaseDate       DateTime?
-  paystackData      Json?
-  transferReference String?
-  recipientCode     String?
-  propertyTitle     String?
-  agentName         String?
-  tenantEmail       String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                    String        @id @default(uuid())
+  reference             String        @unique
+  propertyId            String
+  tenantId              String
+  agentId               String
+  amount                Float
+  amountKobo            Float
+  description           String?
+  status                PaymentStatus @default(pending)
+  tenantConfirmedMoveIn Boolean       @default(false)
+  moveInConfirmedAt     DateTime?
+  inspectionDate        DateTime?
+  releaseDate           DateTime?
+  paystackData          Json?
+  transferReference     String?
+  recipientCode         String?
+  propertyTitle         String?
+  agentName             String?
+  tenantEmail           String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 }
 
 model AgentBank {
