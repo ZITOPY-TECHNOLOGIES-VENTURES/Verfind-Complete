@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import api from '../services/api';
 import { PROPERTY_TYPE_LABELS, type Property, type PropertyType } from '../types';
+import PropertyDetail from '../components/PropertyDetail';
 
 type Tab = 'agents' | 'properties';
 
@@ -25,6 +26,7 @@ export default function AdminDashboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProp, setSelectedProp] = useState<Property | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -139,7 +141,7 @@ export default function AdminDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {properties.length === 0 && <p style={{ color: 'var(--text-muted)', padding: 40, textAlign: 'center' }}>No properties yet</p>}
                 {properties.map(p => (
-                  <div key={p.id} className="glass-card" style={{ padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                  <div key={p.id} className="glass-card" onClick={() => setSelectedProp(p)} style={{ padding: '16px 20px', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 16, cursor: 'pointer' }}>
                     {p.images[0] && <img src={p.images[0]} alt="" style={{ width: 72, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />}
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{p.title}</div>
@@ -153,7 +155,7 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                     </div>
-                    <div style={{ flexShrink: 0 }}>
+                    <div style={{ flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                       {!p.isVerified ? (
                         <button onClick={() => handleVerify(p.id, true)} style={{ padding: '7px 14px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: 9, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
                           Verify
@@ -171,6 +173,10 @@ export default function AdminDashboard() {
           </>
         )}
       </div>
+
+      {selectedProp && (
+        <PropertyDetail property={selectedProp} onClose={() => setSelectedProp(null)} onPay={() => {}} />
+      )}
     </div>
   );
 }
