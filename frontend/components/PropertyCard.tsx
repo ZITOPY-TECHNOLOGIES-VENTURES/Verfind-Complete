@@ -82,11 +82,16 @@ export default function PropertyCard({ property: p, onClick }: Props) {
         </div>
 
         {/* Agent + verified */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, gap: 6, flexWrap: 'wrap' }}>
           <span style={{ color: 'var(--text-muted)' }}>by {p.agentName || 'Agent'}</span>
-          {p.isVerified && (
-            <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 99, padding: '2px 9px', fontWeight: 700 }}>✓ Verified</span>
-          )}
+          <div style={{ display: 'flex', gap: 5 }}>
+            {p.agentIsKycVerified && (
+              <span style={{ background: '#dbeafe', color: '#1e40af', borderRadius: 99, padding: '2px 9px', fontWeight: 700 }}>✓ Agent KYC</span>
+            )}
+            {p.isVerified && (
+              <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 99, padding: '2px 9px', fontWeight: 700 }}>✓ Verified</span>
+            )}
+          </div>
         </div>
       </div>
     </div>

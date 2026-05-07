@@ -31,6 +31,8 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [nin, setNin] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
+  const [cacNumber, setCacNumber] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -82,6 +84,12 @@ export default function Register() {
     try {
       const res = await api.post<{ token: string; user: any }>('/api/auth/verify-email', { email, otp });
       localStorage.setItem('verifind_token', res.token);
+      if (role === 'agent' && (driverLicenseNumber || cacNumber)) {
+        await api.put('/api/auth/me', {
+          ...(driverLicenseNumber && { driverLicenseUrl: driverLicenseNumber }),
+          ...(cacNumber && { cacDocUrl: cacNumber }),
+        });
+      }
       navigate(role === 'agent' ? '/agent' : '/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Invalid code');
@@ -176,10 +184,20 @@ export default function Register() {
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" />
             </div>
             {role === 'agent' && (
-              <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>NIN <span style={{ color: 'var(--text-muted)' }}>(for KYC)</span></label>
-                <input value={nin} onChange={e => setNin(e.target.value)} placeholder="11-digit NIN" maxLength={11} />
-              </div>
+              <>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>NIN <span style={{ color: 'var(--text-muted)' }}>(for KYC)</span></label>
+                  <input value={nin} onChange={e => setNin(e.target.value)} placeholder="11-digit NIN" maxLength={11} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Driver's Licence Number <span style={{ color: 'var(--text-muted)' }}>(optional — if no NIN)</span></label>
+                  <input value={driverLicenseNumber} onChange={e => setDriverLicenseNumber(e.target.value)} placeholder="e.g. ABC123456789" />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>CAC RC Number <span style={{ color: 'var(--text-muted)' }}>(optional — registered agencies only)</span></label>
+                  <input value={cacNumber} onChange={e => setCacNumber(e.target.value)} placeholder="e.g. RC1234567" />
+                </div>
+              </>
             )}
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Password *</label>

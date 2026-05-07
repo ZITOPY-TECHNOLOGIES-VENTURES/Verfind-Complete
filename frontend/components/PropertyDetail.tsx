@@ -140,7 +140,10 @@ export default function PropertyDetail({ property: p, onClose, onPay }: Props) {
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{p.agentName || 'Agent'}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Listed by agent</div>
             </div>
-            {p.isVerified && <span style={{ marginLeft: 'auto', background: '#dcfce7', color: '#166534', borderRadius: 99, fontSize: 11, padding: '3px 10px', fontWeight: 700 }}>✓ Verified Listing</span>}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              {p.agentIsKycVerified && <span style={{ background: '#dbeafe', color: '#1e40af', borderRadius: 99, fontSize: 11, padding: '3px 10px', fontWeight: 700 }}>✓ KYC Verified Agent</span>}
+              {p.isVerified && <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 99, fontSize: 11, padding: '3px 10px', fontWeight: 700 }}>✓ Verified Listing</span>}
+            </div>
           </div>
 
           {/* CTAs */}

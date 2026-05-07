@@ -367,7 +367,12 @@ app.get('/api/properties', async (req, res) => {
       prisma.property.findMany({ where, skip, take, orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }] }),
     ]);
 
-    res.json({ success: true, properties, total, page: parseInt(page), pages: Math.ceil(total / take) });
+    const agentIds = [...new Set(properties.map(p => p.agentId))];
+    const agents = await prisma.user.findMany({ where: { id: { in: agentIds } }, select: { id: true, isKycVerified: true } });
+    const agentKycMap = Object.fromEntries(agents.map(a => [a.id, a.isKycVerified]));
+    const enriched = properties.map(p => ({ ...p, agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
+
+    res.json({ success: true, properties: enriched, total, page: parseInt(page), pages: Math.ceil(total / take) });
   } catch (err) {
     console.error('GET /api/properties:', err.message);
     res.status(500).json({ message: 'Failed to fetch properties' });
@@ -379,7 +384,8 @@ app.get('/api/properties/:id', async (req, res) => {
   try {
     const property = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!property) return res.status(404).json({ message: 'Property not found' });
-    res.json({ success: true, property });
+    const agent = await prisma.user.findUnique({ where: { id: property.agentId }, select: { isKycVerified: true } });
+    res.json({ success: true, property: { ...property, agentIsKycVerified: agent?.isKycVerified ?? false } });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch property' });
   }

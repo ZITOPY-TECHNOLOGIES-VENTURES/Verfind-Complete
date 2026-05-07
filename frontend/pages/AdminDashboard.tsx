@@ -15,6 +15,8 @@ interface Agent {
   businessName?: string;
   isKycVerified: boolean;
   nin?: string;
+  driverLicenseUrl?: string;
+  cacDocUrl?: string;
   isEmailVerified: boolean;
   createdAt: string;
 }
@@ -116,6 +118,8 @@ export default function AdminDashboard() {
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{a.businessName || a.username}</div>
                       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>{a.email} · {a.phone || 'No phone'}</div>
                       {a.nin && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>NIN: <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>****{a.nin.slice(-5)}</span></div>}
+                      {a.driverLicenseUrl && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>Driver's Licence: <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{a.driverLicenseUrl}</span></div>}
+                      {a.cacDocUrl && <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>CAC RC: <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{a.cacDocUrl}</span></div>}
                       <div style={{ marginTop: 8 }}>
                         <KycBadge verified={a.isKycVerified} />
                       </div>

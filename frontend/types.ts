@@ -63,6 +63,7 @@ export interface Property {
   isFeatured: boolean;
   agentId: string;
   agentName?: string;
+  agentIsKycVerified?: boolean;
   isVerified: boolean;
   verificationStage: string;
   status: PropertyStatus;
