@@ -37,3 +37,7 @@ yarn-error.log*
 _agents/
 _agent/
 brain/
+
+# Browser saved pages (research reference — never commit)
+*Zillow*/
+*_files/
