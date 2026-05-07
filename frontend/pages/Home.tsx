@@ -4,14 +4,25 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABUJA_DISTRICTS } from '../types';
 
-function DistrictIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
+const DISTRICT_GRADIENTS: Record<string, string> = {
+  Maitama:        'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
+  Asokoro:        'linear-gradient(135deg, #4338CA 0%, #1B3068 100%)',
+  Wuse:           'linear-gradient(135deg, #0F766E 0%, #1B3068 100%)',
+  Jabi:           'linear-gradient(135deg, #1B3068 0%, #0F766E 100%)',
+  Gwarimpa:       'linear-gradient(135deg, #2D8B1E 0%, #16A34A 100%)',
+  'Life Camp':    'linear-gradient(135deg, #065F46 0%, #2D8B1E 100%)',
+  Katampe:        'linear-gradient(135deg, #1B3068 0%, #4338CA 100%)',
+  Guzape:         'linear-gradient(135deg, #0F766E 0%, #2D8B1E 100%)',
+  Apo:            'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
+  Galadimawa:     'linear-gradient(135deg, #2D8B1E 0%, #0F766E 100%)',
+  Dawaki:         'linear-gradient(135deg, #16A34A 0%, #2D8B1E 100%)',
+  Lugbe:          'linear-gradient(135deg, #065F46 0%, #16A34A 100%)',
+  Kubwa:          'linear-gradient(135deg, #4338CA 0%, #1B3068 100%)',
+  Bwari:          'linear-gradient(135deg, #2D8B1E 0%, #065F46 100%)',
+  Lokogoma:       'linear-gradient(135deg, #0F766E 0%, #065F46 100%)',
+  'Central Area': 'linear-gradient(135deg, #1B3068 0%, #1e3a8a 100%)',
+  Mpape:          'linear-gradient(135deg, #1B3068 0%, #0F766E 100%)',
+};
 
 export default function Home() {
   const { user } = useAuth();
@@ -95,22 +106,48 @@ export default function Home() {
         <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 20, color: 'var(--text-primary)' }}>
           Browse by district
         </h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14 }}>
           {ABUJA_DISTRICTS.map(district => (
             <button
               key={district}
               onClick={() => handleDistrictClick(district)}
-              className="glass-card"
               style={{
-                border: 'none', cursor: 'pointer', padding: '18px 12px',
-                textAlign: 'center', borderRadius: 20, background: 'var(--glass-bg)',
-                transition: 'transform .15s, box-shadow .15s', color: 'var(--text-primary)',
+                border: 'none',
+                cursor: 'pointer',
+                borderRadius: 20,
+                height: 120,
+                background: DISTRICT_GRADIENTS[district] || 'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
+                transition: 'transform .18s, filter .18s',
+                position: 'relative',
+                overflow: 'hidden',
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                alignItems: 'flex-start',
+                textAlign: 'left',
               }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = '')}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.filter = 'brightness(1.12)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = '';
+                e.currentTarget.style.filter = '';
+              }}
             >
-              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}><DistrictIcon /></div>
-              <div style={{ fontWeight: 700, fontSize: 13 }}>{district}</div>
+              {/* Subtle pattern overlay */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)',
+                pointerEvents: 'none',
+              }} />
+              <div style={{ fontWeight: 800, fontSize: 14, color: '#fff', lineHeight: 1.2, position: 'relative', zIndex: 1 }}>
+                {district}
+              </div>
+              <div style={{ position: 'absolute', bottom: 14, right: 16, color: 'rgba(255,255,255,0.6)', fontSize: 16, zIndex: 1 }}>
+                →
+              </div>
             </button>
           ))}
         </div>
