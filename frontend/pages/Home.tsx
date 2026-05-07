@@ -4,13 +4,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABUJA_DISTRICTS } from '../types';
 
-const DISTRICT_EMOJIS: Record<string, string> = {
-  Maitama: '🏛️', Asokoro: '🌿', Wuse: '🏙️', Jabi: '✈️',
-  Gwarimpa: '🏘️', 'Life Camp': '🌳', Katampe: '⛰️', Guzape: '🌄',
-  Apo: '🏗️', Galadimawa: '🏡', Dawaki: '🌾', Lugbe: '🛣️',
-  Kubwa: '🌆', Bwari: '🌿', Lokogoma: '🏠', 'Central Area': '🏢',
-  Mpape: '🏔️',
-};
+function DistrictIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -108,7 +109,7 @@ export default function Home() {
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = '')}
             >
-              <div style={{ fontSize: 28, marginBottom: 8 }}>{DISTRICT_EMOJIS[district] || '📍'}</div>
+              <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}><DistrictIcon /></div>
               <div style={{ fontWeight: 700, fontSize: 13 }}>{district}</div>
             </button>
           ))}

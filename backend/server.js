@@ -40,8 +40,11 @@ app.use(cors({
 app.use(express.json({ limit: '20mb' }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 300, standardHeaders: true, legacyHeaders: false }));
 
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { message: 'Too many attempts, please try again later' } });
+
 // ── JWT ────────────────────────────────────────────────────────────────────
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production';
+if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET env var is required');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function auth(req, res, next) {
   const h = req.headers.authorization;
@@ -160,7 +163,7 @@ function safeUser(user) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // POST /api/auth/send-otp — register step 1
-app.post('/api/auth/send-otp', async (req, res) => {
+app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
   try {
     const { username, email, password, role, phone, nin } = req.body;
     if (!username || !email || !password)
@@ -186,7 +189,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     res.json({ success: true, message: 'Verification code sent' });
   } catch (err) {
     console.error('send-otp:', err.message);
-    res.status(500).json({ message: err.message || 'Failed to send verification code' });
+    res.status(500).json({ message: 'Failed to send verification code' });
   }
 });
 
@@ -226,7 +229,7 @@ app.post('/api/auth/verify-email', async (req, res) => {
 });
 
 // POST /api/auth/login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await prisma.user.findUnique({ where: { email } });
@@ -310,6 +313,8 @@ app.post('/api/auth/verify-otp', async (req, res) => {
 app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { email, otp, password } = req.body;
+    if (!password || password.length < 8)
+      return res.status(400).json({ message: 'Password must be at least 8 characters' });
     const record = resetOtps.get(email);
     if (!record || !record.verified || Date.now() > record.expiry)
       return res.status(400).json({ message: 'Invalid or expired reset session' });
@@ -354,8 +359,8 @@ app.get('/api/properties', async (req, res) => {
       ];
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
+    const take = Math.min(Math.max(parseInt(limit) || 20, 1), 100);
+    const skip = (Math.max(parseInt(page) || 1, 1) - 1) * take;
 
     const [total, properties] = await Promise.all([
       prisma.property.count({ where }),
@@ -558,8 +563,13 @@ app.put('/api/bookings/:id', auth, requireRole('agent'), async (req, res) => {
     if (booking.agentId !== req.user.id) return res.status(403).json({ message: 'Not your booking' });
 
     const { status, agentNote, proposedDate } = req.body;
+    const ALLOWED_BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled'];
     const data = {};
-    if (status) data.status = status;
+    if (status) {
+      if (!ALLOWED_BOOKING_STATUSES.includes(status))
+        return res.status(400).json({ message: 'Invalid booking status' });
+      data.status = status;
+    }
     if (agentNote !== undefined) data.agentNote = agentNote;
     if (proposedDate) data.requestedDate = new Date(proposedDate);
 
@@ -626,6 +636,8 @@ app.get('/api/payments/verify/:reference', auth, async (req, res) => {
     const paystackData = await psGet(`/transaction/verify/${reference}`);
     const payment = await prisma.payment.findUnique({ where: { reference } });
     if (!payment) return res.status(404).json({ message: 'Payment record not found' });
+    if (payment.tenantId !== req.user.id && req.user.role !== 'admin')
+      return res.status(403).json({ message: 'Forbidden' });
 
     if (paystackData.status === 'success' && payment.status === 'pending') {
       await Promise.all([

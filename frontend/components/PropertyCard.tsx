@@ -29,7 +29,12 @@ export default function PropertyCard({ property: p, onClick }: Props) {
         {hasImage ? (
           <img src={p.images[0]} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, color: 'var(--text-muted)' }}>🏠</div>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, var(--glass-bg-subtle) 0%, var(--bg-surface-alt) 100%)' }}>
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--border-color)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+          </div>
         )}
         {/* Video badge */}
         <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,.65)', backdropFilter: 'blur(8px)', color: '#fff', borderRadius: 99, fontSize: 11, padding: '4px 10px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
