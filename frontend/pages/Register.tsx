@@ -126,8 +126,8 @@ export default function Register() {
 
       <div className="glass-card zoom-in-95" style={{ width: '100%', maxWidth: 460, padding: '40px 36px' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <Link to="/" style={{ textDecoration: 'none', fontWeight: 900, fontSize: 24, letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#1B3068' }}>Veri</span><span style={{ color: '#2D8B1E' }}>find</span>
+          <Link to="/" style={{ display: 'inline-block' }}>
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 64, width: 'auto' }} />
           </Link>
           <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: 14 }}>
             {step === 'form' ? 'Create your account' : `Enter the code sent to ${email}`}

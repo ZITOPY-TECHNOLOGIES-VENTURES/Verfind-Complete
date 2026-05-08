@@ -183,3 +183,12 @@ model AgentBank {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+model Favorite {
+  id         String   @id @default(uuid())
+  tenantId   String
+  propertyId String
+  createdAt  DateTime @default(now())
+
+  @@unique([tenantId, propertyId])
+}

@@ -4,6 +4,8 @@ import { PROPERTY_TYPE_LABELS, type Property } from '../types';
 interface Props {
   property: Property;
   onClick: () => void;
+  onFavorite?: (id: string) => void;
+  isFavorited?: boolean;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
@@ -12,7 +14,7 @@ const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }
   rented:      { bg: '#e0e7ff', color: '#3730a3', label: 'Rented' },
 };
 
-export default function PropertyCard({ property: p, onClick }: Props) {
+export default function PropertyCard({ property: p, onClick, onFavorite, isFavorited }: Props) {
   const status = STATUS_STYLES[p.status] || STATUS_STYLES.available;
   const hasImage = p.images && p.images.length > 0;
 
@@ -48,6 +50,15 @@ export default function PropertyCard({ property: p, onClick }: Props) {
           <div style={{ position: 'absolute', bottom: 10, left: 10, background: '#f59e0b', color: '#fff', borderRadius: 99, fontSize: 10, padding: '3px 9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Featured
           </div>
+        )}
+        {onFavorite && (
+          <button
+            onClick={e => { e.stopPropagation(); onFavorite(p.id); }}
+            style={{ position: 'absolute', bottom: 10, right: 10, background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)', border: 'none', borderRadius: '50%', width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: isFavorited ? '#ef4444' : '#fff' }}
+            title={isFavorited ? 'Remove from saved' : 'Save property'}
+          >
+            {isFavorited ? '❤' : '♡'}
+          </button>
         )}
       </div>
 

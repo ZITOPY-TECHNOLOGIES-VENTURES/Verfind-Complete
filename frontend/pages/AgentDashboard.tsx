@@ -9,6 +9,7 @@ type Tab = 'listings' | 'bookings' | 'bank';
 
 const EMPTY_FORM = {
   title: '', description: '', district: '', address: '',
+  lat: '', lng: '',
   type: 'Self_contain' as PropertyType,
   baseRent: '', serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '',
   videoUrl: '', images: '',
@@ -86,6 +87,7 @@ export default function AgentDashboard() {
     });
     setForm({
       title: p.title, description: p.description || '', district: p.district, address: p.address || '',
+      lat: String(p.lat || ''), lng: String(p.lng || ''),
       type: p.type, baseRent: String(p.baseRent), serviceCharge: String(p.serviceCharge),
       cautionFee: String(p.cautionFee), agencyFee: String(p.agencyFee || ''),
       legalFee: String(p.legalFee || ''), videoUrl: p.videoUrl,
@@ -138,9 +140,7 @@ export default function AgentDashboard() {
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 58, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: '-0.5px', marginRight: 'auto' }}>
-            <span style={{ color: '#1B3068' }}>Veri</span><span style={{ color: '#2D8B1E' }}>find</span>
-          </span>
+          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto', marginRight: 'auto' }} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
             {user?.businessName || user?.username}
           </span>
@@ -265,6 +265,10 @@ export default function AgentDashboard() {
                 </select>
               </FormRow>
               <FormRow label="Address"><input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Street / estate name" /></FormRow>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <FormRow label="Latitude (optional)"><input type="number" step="any" value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} placeholder="e.g. 9.0765" /></FormRow>
+                <FormRow label="Longitude (optional)"><input type="number" step="any" value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} placeholder="e.g. 7.3986" /></FormRow>
+              </div>
               <FormRow label="Property Type *">
                 <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PropertyType }))} required>
                   {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map(t => <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>)}

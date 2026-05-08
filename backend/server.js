@@ -24,7 +24,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https:'],
-      frameSrc:       ['https://www.youtube.com', 'https://player.vimeo.com'],
+      frameSrc:       ['https://www.youtube.com', 'https://player.vimeo.com', 'https://maps.google.com'],
       connectSrc:     ["'self'", 'https://api.paystack.co', 'https://standard.paystack.co'],
       frameAncestors: ["'none'"],
     },
@@ -587,6 +587,59 @@ app.put('/api/bookings/:id', auth, requireRole('agent'), async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// FAVORITES ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// POST /api/favorites/:propertyId
+app.post('/api/favorites/:propertyId', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    const { propertyId } = req.params;
+    await prisma.favorite.upsert({
+      where: { tenantId_propertyId: { tenantId: req.user.id, propertyId } },
+      create: { tenantId: req.user.id, propertyId },
+      update: {},
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to save favorite' });
+  }
+});
+
+// DELETE /api/favorites/:propertyId
+app.delete('/api/favorites/:propertyId', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    await prisma.favorite.deleteMany({
+      where: { tenantId: req.user.id, propertyId: req.params.propertyId },
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to remove favorite' });
+  }
+});
+
+// GET /api/favorites
+app.get('/api/favorites', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    const favs = await prisma.favorite.findMany({
+      where: { tenantId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+    const propertyIds = favs.map(f => f.propertyId);
+    if (propertyIds.length === 0) return res.json({ success: true, favorites: [] });
+
+    const properties = await prisma.property.findMany({ where: { id: { in: propertyIds } } });
+    const agentIds = [...new Set(properties.map(p => p.agentId))];
+    const agents = await prisma.user.findMany({ where: { id: { in: agentIds } }, select: { id: true, isKycVerified: true } });
+    const agentKycMap = Object.fromEntries(agents.map(a => [a.id, a.isKycVerified]));
+    const enriched = properties.map(p => ({ ...p, agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
+
+    res.json({ success: true, favorites: enriched });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch favorites' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PAYMENT / ESCROW ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -597,6 +650,11 @@ app.post('/api/payments/initialize', auth, requireRole('tenant'), async (req, re
     const property = await prisma.property.findUnique({ where: { id: propertyId } });
     if (!property) return res.status(404).json({ message: 'Property not found' });
     if (!property.totalInitialPayment) return res.status(400).json({ message: 'Property has no price set' });
+
+    const tenant = await prisma.user.findUnique({ where: { id: req.user.id }, select: { currentAddress: true } });
+    if (!tenant?.currentAddress?.trim()) {
+      return res.status(400).json({ message: 'Please add your current address in your profile before making a payment.' });
+    }
 
     const amountKobo = Math.round(property.totalInitialPayment * 100);
     const reference = `vrf_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -629,7 +687,7 @@ app.post('/api/payments/initialize', auth, requireRole('tenant'), async (req, re
     res.json({ success: true, authorizationUrl: paystackData.authorization_url, reference });
   } catch (err) {
     console.error('payment/initialize:', err.message);
-    res.status(500).json({ message: err.message || 'Failed to initialize payment' });
+    res.status(500).json({ message: 'Failed to initialize payment' });
   }
 });
 
@@ -704,7 +762,7 @@ app.post('/api/payments/confirm-movein/:paymentId', auth, requireRole('tenant'),
     res.json({ success: true, message: 'Move-in confirmed. Funds are being released to the agent.' });
   } catch (err) {
     console.error('confirm-movein:', err.message);
-    res.status(500).json({ message: err.message || 'Failed to confirm move-in' });
+    res.status(500).json({ message: 'Failed to confirm move-in' });
   }
 });
 
@@ -821,7 +879,7 @@ app.post('/api/banks/setup', auth, requireRole('agent'), async (req, res) => {
     res.json({ success: true, agentBank });
   } catch (err) {
     console.error('bank/setup:', err.message);
-    res.status(500).json({ message: err.message || 'Failed to setup bank account' });
+    res.status(500).json({ message: 'Failed to setup bank account' });
   }
 });
 

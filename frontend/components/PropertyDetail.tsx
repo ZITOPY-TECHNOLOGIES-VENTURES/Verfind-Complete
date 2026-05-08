@@ -92,15 +92,25 @@ export default function PropertyDetail({ property: p, onClose, onPay }: Props) {
             ))}
           </div>
 
-          {/* Address + map link */}
+          {/* Address + map */}
           {p.address && (
             <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
               📍 {p.address}, {p.district}, Abuja
-              {p.lat && p.lng && (
-                <a href={`https://www.google.com/maps?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 10, color: 'var(--color-primary)', fontSize: 13, fontWeight: 600 }}>
-                  View on Map →
-                </a>
-              )}
+            </div>
+          )}
+          {p.lat && p.lng && (
+            <div>
+              <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: 12, overflow: 'hidden', background: '#e5e7eb' }}>
+                <iframe
+                  src={`https://maps.google.com/maps?q=${p.lat},${p.lng}&output=embed`}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
+                  title="Property location"
+                  loading="lazy"
+                />
+              </div>
+              <a href={`https://www.google.com/maps?q=${p.lat},${p.lng}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, color: 'var(--color-primary)', fontSize: 13, fontWeight: 600 }}>
+                Open in Google Maps →
+              </a>
             </div>
           )}
 

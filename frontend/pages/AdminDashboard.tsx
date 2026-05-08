@@ -66,10 +66,10 @@ export default function AdminDashboard() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 58, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontWeight: 900, fontSize: 20, letterSpacing: '-0.5px', marginRight: 'auto' }}>
-            <span style={{ color: '#1B3068' }}>Veri</span><span style={{ color: '#2D8B1E' }}>find</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginLeft: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
-          </span>
+          <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
+          </div>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{user?.username}</span>
           <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>{theme === 'dark' ? '☀️' : '🌙'}</button>
           <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>Sign out</button>

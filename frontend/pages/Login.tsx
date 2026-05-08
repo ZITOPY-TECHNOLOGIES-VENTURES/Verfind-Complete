@@ -47,8 +47,8 @@ export default function Login() {
 
       <div className="glass-card zoom-in-95" style={{ width: '100%', maxWidth: 420, padding: '40px 36px' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Link to="/" style={{ textDecoration: 'none', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px' }}>
-            <span style={{ color: '#1B3068' }}>Veri</span><span style={{ color: '#2D8B1E' }}>find</span>
+          <Link to="/" style={{ display: 'inline-block' }}>
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 64, width: 'auto' }} />
           </Link>
           <p style={{ color: 'var(--text-secondary)', marginTop: 8, fontSize: 15 }}>Welcome back</p>
         </div>
