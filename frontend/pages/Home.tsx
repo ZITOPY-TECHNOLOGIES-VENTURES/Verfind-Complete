@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { ABUJA_DISTRICTS } from '../types';
+import SiteFooter from '../components/SiteFooter';
 
 const DISTRICT_GRADIENTS: Record<string, string> = {
   Maitama:        'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
@@ -49,8 +50,11 @@ export default function Home() {
 
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 42, width: 'auto' }} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', height: 60, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Link to="/"><img src="/verifind-logo.png" alt="Verifind" style={{ height: 42, width: 'auto', marginRight: 'auto' }} /></Link>
+          <Link to="/about" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>About</Link>
+          <Link to="/how-it-works" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>How It Works</Link>
+          <Link to="/contact" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>Contact</Link>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>
               {theme === 'dark' ? '☀️' : '🌙'}
@@ -98,6 +102,43 @@ export default function Home() {
           </button>
         </form>
       </section>
+
+      {/* Stats bar */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 48px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+          {[
+            { value: '553+', label: 'Active Listings' },
+            { value: '412', label: 'Verified Properties' },
+            { value: '87', label: 'Certified Agents' },
+            { value: '17', label: 'FCT Districts' },
+          ].map(s => (
+            <div key={s.label} className="glass-card" style={{ padding: '20px 16px', borderRadius: 18, textAlign: 'center' }}>
+              <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--color-primary)' }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, marginTop: 4 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Value props */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 56px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+          {[
+            { icon: '🏠', accent: '#2D8B1E', title: 'Rent in Abuja', body: 'Browse verified rentals with escrow protection. Pay securely — funds released only after you confirm move-in.', cta: 'Find Rentals', to: '/dashboard' },
+            { icon: '📹', accent: '#1B3068', title: 'Video Walkthroughs', body: 'Every listing on Verifind includes a real video tour. No more arriving to find a property that doesn\'t match the photos.', cta: 'Browse Properties', to: '/dashboard' },
+            { icon: '🏢', accent: '#4338CA', title: 'List & Get Verified', body: 'Post your property, complete KYC, and earn the Verifind Verified badge. Verified listings build tenant trust instantly.', cta: 'List Your Property', to: '/register?role=agent' },
+          ].map(c => (
+            <div key={c.title} className="glass-card" style={{ borderRadius: 20, padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: `${c.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{c.icon}</div>
+              <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)' }}>{c.title}</div>
+              <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, flex: 1 }}>{c.body}</div>
+              <button onClick={() => navigate(c.to)} style={{ alignSelf: 'flex-start', marginTop: 4, padding: '9px 18px', background: c.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+                {c.cta} →
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Districts grid */}
       <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
@@ -163,6 +204,8 @@ export default function Home() {
           List a Property
         </button>
       </section>
+
+      <SiteFooter />
     </div>
   );
 }
