@@ -65,9 +65,9 @@ export default function AdminDashboard() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', height: 58, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto' }} />
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
           </div>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{user?.username}</span>

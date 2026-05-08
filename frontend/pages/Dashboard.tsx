@@ -110,8 +110,8 @@ export default function Dashboard() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', height: 58, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto', marginRight: 'auto' }} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} />
           <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>

@@ -139,8 +139,8 @@ export default function AgentDashboard() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', height: 58, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto', marginRight: 'auto' }} />
+        <div style={{ maxWidth: 1100, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
             {user?.businessName || user?.username}
           </span>

@@ -32,8 +32,8 @@ export default function HowItWorks() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 24px' }}>
-        <div style={{ maxWidth: 1100, margin: '0 auto', height: 60, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Link to="/"><img src="/verifind-logo.png" alt="Verifind" style={{ height: 40, width: 'auto', marginRight: 'auto' }} /></Link>
+        <div style={{ maxWidth: 1100, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to="/"><img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} /></Link>
           <Link to="/about" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>About</Link>
           <Link to="/how-it-works" style={{ fontSize: 14, color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none' }}>How It Works</Link>
           <Link to="/contact" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>Contact</Link>
