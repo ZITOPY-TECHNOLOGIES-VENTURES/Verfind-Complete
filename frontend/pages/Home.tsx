@@ -39,37 +39,38 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
-      {/* Liquid background blobs */}
-      <div className="liquid-bg-container">
-        <div className="liquid-blob" style={{ width: 500, height: 500, top: '-100px', left: '-150px', background: 'var(--bubble-1)' }} />
-        <div className="liquid-blob" style={{ width: 400, height: 400, bottom: '-80px', right: '-100px', background: 'var(--bubble-2)', animationDelay: '1.5s' }} />
-      </div>
 
       <SiteHeader homeVariant />
 
-      {/* Hero */}
-      <section style={{ textAlign: 'center', padding: '72px 24px 48px', maxWidth: 720, margin: '0 auto' }}>
-        <div className="slide-in-from-bottom-4" style={{ display: 'inline-block', background: 'rgba(10,102,194,.1)', border: '1px solid rgba(10,102,194,.25)', borderRadius: 99, padding: '5px 14px', fontSize: 12, fontWeight: 700, color: 'var(--color-primary)', marginBottom: 20, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          Verified Abuja Real Estate
-        </div>
-        <h1 className="slide-in-from-bottom-6" style={{ fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 900, lineHeight: 1.1, letterSpacing: '-1.5px', margin: '0 0 20px', color: 'var(--text-primary)' }}>
-          Find verified homes<br />in <span style={{ color: 'var(--color-primary)' }}>Abuja</span>
-        </h1>
-        <p className="slide-in-from-bottom-8" style={{ fontSize: 18, color: 'var(--text-secondary)', margin: '0 0 36px', lineHeight: 1.6 }}>
-          Browse listings with video walkthroughs, book inspections, and pay securely via escrow.
-        </p>
+      {/* Hero — dark full-width */}
+      <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #0a1628 0%, #1a3a8a 55%, #0a3028 100%)', padding: '80px 24px 72px' }}>
+        {/* Subtle radial highlight */}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.25) 0%, transparent 65%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 20% 80%, rgba(45,139,30,0.15) 0%, transparent 55%)', pointerEvents: 'none' }} />
 
-        <form onSubmit={handleSearch} className="slide-in-from-bottom-10" style={{ display: 'flex', gap: 10, maxWidth: 520, margin: '0 auto' }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by district, title or address..."
-            style={{ flex: 1, borderRadius: 14, padding: '13px 16px', fontSize: 15 }}
-          />
-          <button type="submit" style={{ padding: '13px 24px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 15 }}>
-            Search
-          </button>
-        </form>
+        <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="slide-in-from-bottom-4" style={{ display: 'inline-block', background: 'rgba(45,139,30,0.2)', border: '1px solid rgba(45,139,30,0.45)', borderRadius: 99, padding: '5px 16px', fontSize: 11, fontWeight: 700, color: '#6ee7b7', marginBottom: 24, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Verified Abuja Real Estate
+          </div>
+          <h1 className="slide-in-from-bottom-6" style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(34px, 6vw, 60px)', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-0.03em', margin: '0 0 22px', color: '#fff' }}>
+            Find verified homes<br />in <span style={{ color: '#6ee7b7', fontWeight: 700 }}>Abuja</span>
+          </h1>
+          <p className="slide-in-from-bottom-8" style={{ fontSize: 17, color: 'rgba(255,255,255,0.72)', margin: '0 0 40px', lineHeight: 1.7 }}>
+            Video walkthroughs, inspection booking, and escrow payments — all in one place.
+          </p>
+
+          <form onSubmit={handleSearch} className="slide-in-from-bottom-10" style={{ display: 'flex', gap: 0, maxWidth: 540, margin: '0 auto', background: 'rgba(255,255,255,0.97)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.1)' }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by district, title or address..."
+              style={{ flex: 1, borderRadius: 0, padding: '14px 18px', fontSize: 15, border: 'none', background: 'transparent', color: '#1C1C1E', outline: 'none' }}
+            />
+            <button type="submit" style={{ padding: '14px 24px', background: '#1B3068', color: '#fff', border: 'none', borderRadius: 0, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 15 }}>
+              Search
+            </button>
+          </form>
+        </div>
       </section>
 
       {/* Stats bar */}

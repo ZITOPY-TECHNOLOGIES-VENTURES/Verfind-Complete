@@ -124,6 +124,19 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Browse hero banner */}
+      <div style={{ position: 'relative', background: 'linear-gradient(135deg, #1B3068 0%, #0E3A6E 50%, #095D50 100%)', padding: '36px 24px 32px', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,31,61,0.6) 0%, rgba(10,31,61,0.1) 100%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(22px, 4vw, 34px)', fontWeight: 400, color: '#fff', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+            Browse verified properties
+          </h2>
+          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.68)', margin: 0 }}>
+            {total > 0 ? `${total} listing${total === 1 ? '' : 's'} across Abuja FCT` : 'Find your next home in Abuja'}
+          </p>
+        </div>
+      </div>
+
       <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '20px' }}>
         {/* Profile completion banner */}
         {user?.role === 'tenant' && !user?.currentAddress && (
