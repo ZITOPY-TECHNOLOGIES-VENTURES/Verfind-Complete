@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import { ABUJA_DISTRICTS } from '../types';
 import SiteFooter from '../components/SiteFooter';
+import SiteHeader from '../components/SiteHeader';
 
 const DISTRICT_GRADIENTS: Record<string, string> = {
   Maitama:        'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
@@ -26,8 +25,6 @@ const DISTRICT_GRADIENTS: Record<string, string> = {
 };
 
 export default function Home() {
-  const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
 
@@ -48,35 +45,7 @@ export default function Home() {
         <div className="liquid-blob" style={{ width: 400, height: 400, bottom: '-80px', right: '-100px', background: 'var(--bubble-2)', animationDelay: '1.5s' }} />
       </div>
 
-      {/* Header */}
-      <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 16 }}>
-          <Link to="/"><img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} /></Link>
-          <Link to="/about" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>About</Link>
-          <Link to="/how-it-works" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>How It Works</Link>
-          <Link to="/contact" style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none' }}>Contact</Link>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--text-secondary)' }}>
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            {user ? (
-              <button className="btn-primary" onClick={() => navigate(user.role === 'agent' ? '/agent' : '/dashboard')}
-                style={{ padding: '8px 18px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                Dashboard
-              </button>
-            ) : (
-              <>
-                <button onClick={() => navigate('/login')} style={{ background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 10, padding: '7px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
-                  Log in
-                </button>
-                <button onClick={() => navigate('/register')} style={{ background: 'var(--color-primary)', border: 'none', borderRadius: 10, padding: '8px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14, color: '#fff' }}>
-                  Sign up
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <SiteHeader homeVariant />
 
       {/* Hero */}
       <section style={{ textAlign: 'center', padding: '72px 24px 48px', maxWidth: 720, margin: '0 auto' }}>

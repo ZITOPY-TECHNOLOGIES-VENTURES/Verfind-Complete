@@ -337,6 +337,17 @@ select {
 .duration-700  { animation-duration: .7s;  }
 .duration-1000 { animation-duration: 1s;   }
 
+/* ── Site Header — Mobile Hamburger ── */
+.site-nav-links { display: flex; align-items: center; gap: 12px; }
+.hamburger-btn  { display: none !important; }
+.site-nav-mobile-menu { display: none; }
+
+@media (max-width: 768px) {
+  .site-nav-links { display: none !important; }
+  .hamburger-btn  { display: flex !important; flex-direction: column; }
+  .site-nav-mobile-menu { display: block; }
+}
+
 /* ── Preloader ── */
 #verifind-preloader {
   position: fixed; inset: 0;
