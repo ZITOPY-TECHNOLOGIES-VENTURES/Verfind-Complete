@@ -4,24 +4,24 @@ import { ABUJA_DISTRICTS } from '../types';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
 
-const DISTRICT_GRADIENTS: Record<string, string> = {
-  Maitama:        'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
-  Asokoro:        'linear-gradient(135deg, #4338CA 0%, #1B3068 100%)',
-  Wuse:           'linear-gradient(135deg, #0F766E 0%, #1B3068 100%)',
-  Jabi:           'linear-gradient(135deg, #1B3068 0%, #0F766E 100%)',
-  Gwarimpa:       'linear-gradient(135deg, #2D8B1E 0%, #16A34A 100%)',
-  'Life Camp':    'linear-gradient(135deg, #065F46 0%, #2D8B1E 100%)',
-  Katampe:        'linear-gradient(135deg, #1B3068 0%, #4338CA 100%)',
-  Guzape:         'linear-gradient(135deg, #0F766E 0%, #2D8B1E 100%)',
-  Apo:            'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
-  Galadimawa:     'linear-gradient(135deg, #2D8B1E 0%, #0F766E 100%)',
-  Dawaki:         'linear-gradient(135deg, #16A34A 0%, #2D8B1E 100%)',
-  Lugbe:          'linear-gradient(135deg, #065F46 0%, #16A34A 100%)',
-  Kubwa:          'linear-gradient(135deg, #4338CA 0%, #1B3068 100%)',
-  Bwari:          'linear-gradient(135deg, #2D8B1E 0%, #065F46 100%)',
-  Lokogoma:       'linear-gradient(135deg, #0F766E 0%, #065F46 100%)',
-  'Central Area': 'linear-gradient(135deg, #1B3068 0%, #1e3a8a 100%)',
-  Mpape:          'linear-gradient(135deg, #1B3068 0%, #0F766E 100%)',
+const DISTRICT_IMAGES: Record<string, string> = {
+  Maitama:        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80',
+  Asokoro:        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80',
+  Wuse:           'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&q=80',
+  Jabi:           'https://images.unsplash.com/photo-1592595896551-12b371d546d5?w=600&q=80',
+  Gwarimpa:       'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80',
+  'Life Camp':    'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80',
+  Katampe:        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=600&q=80',
+  Guzape:         'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80',
+  Apo:            'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80',
+  Galadimawa:     'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80',
+  Dawaki:         'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80',
+  Lugbe:          'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=600&q=80',
+  Kubwa:          'https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=600&q=80',
+  Bwari:          'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80',
+  Lokogoma:       'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80',
+  'Central Area': 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80',
+  Mpape:          'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80',
 };
 
 export default function Home() {
@@ -42,11 +42,10 @@ export default function Home() {
 
       <SiteHeader homeVariant />
 
-      {/* Hero — dark full-width */}
-      <section style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(135deg, #0a1628 0%, #1a3a8a 55%, #0a3028 100%)', padding: '80px 24px 72px' }}>
-        {/* Subtle radial highlight */}
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 60% 40%, rgba(37,99,235,0.25) 0%, transparent 65%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 20% 80%, rgba(45,139,30,0.15) 0%, transparent 55%)', pointerEvents: 'none' }} />
+      {/* Hero — real photo background */}
+      <section style={{ position: 'relative', overflow: 'hidden', backgroundImage: "url('/abuja_hero.png')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '80px 24px 72px' }}>
+        {/* Dark overlay */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.80) 50%, rgba(10,22,40,0.45) 100%)', pointerEvents: 'none' }} />
 
         <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <div className="slide-in-from-bottom-4" style={{ display: 'inline-block', background: 'rgba(45,139,30,0.2)', border: '1px solid rgba(45,139,30,0.45)', borderRadius: 99, padding: '5px 16px', fontSize: 11, fontWeight: 700, color: '#6ee7b7', marginBottom: 24, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -124,12 +123,14 @@ export default function Home() {
                 border: 'none',
                 cursor: 'pointer',
                 borderRadius: 20,
-                height: 120,
-                background: DISTRICT_GRADIENTS[district] || 'linear-gradient(135deg, #1B3068 0%, #2563EB 100%)',
+                height: 140,
+                backgroundImage: `url('${DISTRICT_IMAGES[district] || DISTRICT_IMAGES.Maitama}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
                 transition: 'transform .18s, filter .18s',
                 position: 'relative',
                 overflow: 'hidden',
-                padding: '16px 18px',
+                padding: '14px 16px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
@@ -138,23 +139,19 @@ export default function Home() {
               }}
               onMouseEnter={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.filter = 'brightness(1.12)';
+                e.currentTarget.style.filter = 'brightness(1.1)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = '';
                 e.currentTarget.style.filter = '';
               }}
             >
-              {/* Subtle pattern overlay */}
-              <div style={{
-                position: 'absolute', inset: 0,
-                backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 60%)',
-                pointerEvents: 'none',
-              }} />
-              <div style={{ fontWeight: 800, fontSize: 14, color: '#fff', lineHeight: 1.2, position: 'relative', zIndex: 1 }}>
+              {/* Dark overlay for text legibility */}
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)', pointerEvents: 'none' }} />
+              <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', lineHeight: 1.2, position: 'relative', zIndex: 1, textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
                 {district}
               </div>
-              <div style={{ position: 'absolute', bottom: 14, right: 16, color: 'rgba(255,255,255,0.6)', fontSize: 16, zIndex: 1 }}>
+              <div style={{ position: 'absolute', bottom: 12, right: 14, color: 'rgba(255,255,255,0.7)', fontSize: 15, zIndex: 1 }}>
                 →
               </div>
             </button>
