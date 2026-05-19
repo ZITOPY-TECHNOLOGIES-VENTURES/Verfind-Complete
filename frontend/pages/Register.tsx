@@ -117,32 +117,42 @@ export default function Register() {
     background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0,
   };
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg-page)' }}>
-      <div className="liquid-bg-container">
-        <div className="liquid-blob" style={{ width: 450, height: 450, top: '-120px', right: '-100px', background: 'var(--bubble-1)' }} />
-        <div className="liquid-blob" style={{ width: 350, height: 350, bottom: '-80px', left: '-80px', background: 'var(--bubble-2)', animationDelay: '1.8s' }} />
-      </div>
+  const darkInput: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', padding: '11px 14px', borderRadius: 12,
+    border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.06)',
+    color: '#fff', fontSize: 14, outline: 'none',
+  };
+  const darkLabel: React.CSSProperties = { display: 'block', fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginBottom: 5 };
 
-      <div className="glass-card zoom-in-95" style={{ width: '100%', maxWidth: 460, padding: '40px 36px' }}>
+  return (
+    <div style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '32px 24px',
+      background: 'radial-gradient(ellipse at 80% 20%, rgba(27,79,216,0.22) 0%, transparent 50%), radial-gradient(ellipse at 20% 80%, rgba(109,40,217,0.18) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(5,150,105,0.10) 0%, transparent 60%), #060D1F',
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 460, padding: '40px 36px', borderRadius: 24,
+        background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(48px)', WebkitBackdropFilter: 'blur(48px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 48px rgba(0,0,0,0.5)',
+      }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <Link to="/" style={{ display: 'inline-block' }}>
             <img src="/verifind-logo.png" alt="Verifind" style={{ height: 64, width: 'auto' }} />
           </Link>
-          <p style={{ color: 'var(--text-secondary)', marginTop: 6, fontSize: 14 }}>
+          <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: 6, fontSize: 14 }}>
             {step === 'form' ? 'Create your account' : `Enter the code sent to ${email}`}
           </p>
         </div>
 
         {step === 'form' && (
-          <div style={{ display: 'flex', background: 'var(--bg-surface-alt)', borderRadius: 12, padding: 4, marginBottom: 24 }}>
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 4, marginBottom: 24 }}>
             {(['tenant', 'agent'] as Role[]).map(r => (
               <button key={r} onClick={() => setRole(r)} style={{
                 flex: 1, padding: '9px', border: 'none', borderRadius: 9, cursor: 'pointer',
                 fontWeight: 700, fontSize: 14, transition: 'all .15s',
-                background: role === r ? 'var(--glass-bg-strong)' : 'transparent',
-                color: role === r ? 'var(--text-primary)' : 'var(--text-muted)',
-                boxShadow: role === r ? 'var(--shadow-xs)' : 'none',
+                background: role === r ? 'rgba(27,79,216,0.7)' : 'transparent',
+                color: role === r ? '#fff' : 'rgba(255,255,255,0.45)',
               }}>
                 {r === 'tenant' ? '🏠 Tenant' : '🏢 Agent'}
               </button>
@@ -151,7 +161,7 @@ export default function Register() {
         )}
 
         {error && (
-          <div style={{ background: 'rgba(232,76,61,.1)', border: '1px solid rgba(232,76,61,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 18, color: '#E84C3D', fontSize: 14 }}>
+          <div style={{ background: 'rgba(232,76,61,.12)', border: '1px solid rgba(232,76,61,.3)', borderRadius: 12, padding: '12px 14px', marginBottom: 18, color: '#f87171', fontSize: 14 }}>
             {error}
           </div>
         )}
@@ -161,59 +171,59 @@ export default function Register() {
             {role === 'agent' ? (
               <>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Full Name *</label>
-                  <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your full name" required />
+                  <label style={darkLabel}>Full Name *</label>
+                  <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your full name" required style={darkInput} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Business Name <span style={{ color: 'var(--text-muted)' }}>(optional)</span></label>
-                  <input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your agency / business name" />
+                  <label style={darkLabel}>Business Name <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional)</span></label>
+                  <input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="Your agency / business name" style={darkInput} />
                 </div>
               </>
             ) : (
               <div>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Full Name *</label>
-                <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your full name" required />
+                <label style={darkLabel}>Full Name *</label>
+                <input value={username} onChange={e => setUsername(e.target.value)} placeholder="Your full name" required style={darkInput} />
               </div>
             )}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Email *</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" required />
+              <label style={darkLabel}>Email *</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" required style={darkInput} />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Phone Number</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" />
+              <label style={darkLabel}>Phone Number</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+234 800 000 0000" style={darkInput} />
             </div>
             {role === 'agent' && (
               <>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>NIN <span style={{ color: 'var(--text-muted)' }}>(for KYC)</span></label>
-                  <input value={nin} onChange={e => setNin(e.target.value)} placeholder="11-digit NIN" maxLength={11} />
+                  <label style={darkLabel}>NIN <span style={{ color: 'rgba(255,255,255,0.3)' }}>(for KYC)</span></label>
+                  <input value={nin} onChange={e => setNin(e.target.value)} placeholder="11-digit NIN" maxLength={11} style={darkInput} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Driver's Licence Number <span style={{ color: 'var(--text-muted)' }}>(optional — if no NIN)</span></label>
-                  <input value={driverLicenseNumber} onChange={e => setDriverLicenseNumber(e.target.value)} placeholder="e.g. ABC123456789" />
+                  <label style={darkLabel}>Driver's Licence Number <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional — if no NIN)</span></label>
+                  <input value={driverLicenseNumber} onChange={e => setDriverLicenseNumber(e.target.value)} placeholder="e.g. ABC123456789" style={darkInput} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>CAC RC Number <span style={{ color: 'var(--text-muted)' }}>(optional — registered agencies only)</span></label>
-                  <input value={cacNumber} onChange={e => setCacNumber(e.target.value)} placeholder="e.g. RC1234567" />
+                  <label style={darkLabel}>CAC RC Number <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional — registered agencies only)</span></label>
+                  <input value={cacNumber} onChange={e => setCacNumber(e.target.value)} placeholder="e.g. RC1234567" style={darkInput} />
                 </div>
               </>
             )}
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Password *</label>
+              <label style={darkLabel}>Password *</label>
               <div style={pwFieldStyle}>
-                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" required minLength={8} style={{ paddingRight: 40 }} />
-                <button type="button" style={eyeBtnStyle} onClick={() => setShowPass(v => !v)}><EyeIcon open={showPass} /></button>
+                <input type={showPass ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 characters" required minLength={8} style={{ ...darkInput, paddingRight: 40 }} />
+                <button type="button" style={{ ...eyeBtnStyle, color: 'rgba(255,255,255,0.4)' }} onClick={() => setShowPass(v => !v)}><EyeIcon open={showPass} /></button>
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Confirm Password *</label>
+              <label style={darkLabel}>Confirm Password *</label>
               <div style={pwFieldStyle}>
-                <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required style={{ paddingRight: 40 }} />
-                <button type="button" style={eyeBtnStyle} onClick={() => setShowConfirm(v => !v)}><EyeIcon open={showConfirm} /></button>
+                <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat password" required style={{ ...darkInput, paddingRight: 40 }} />
+                <button type="button" style={{ ...eyeBtnStyle, color: 'rgba(255,255,255,0.4)' }} onClick={() => setShowConfirm(v => !v)}><EyeIcon open={showConfirm} /></button>
               </div>
             </div>
-            <button type="submit" disabled={loading} style={{ marginTop: 6, padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ marginTop: 6, padding: '13px', background: '#1B4FD8', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Sending code…' : 'Continue'}
             </button>
           </form>
@@ -222,21 +232,21 @@ export default function Register() {
         {step === 'otp' && (
           <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>6-digit verification code</label>
-              <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} placeholder="000000" maxLength={6} style={{ textAlign: 'center', fontSize: 24, letterSpacing: 8, fontWeight: 700 }} required />
+              <label style={darkLabel}>6-digit verification code</label>
+              <input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} placeholder="000000" maxLength={6} style={{ ...darkInput, textAlign: 'center', fontSize: 24, letterSpacing: 8, fontWeight: 700 }} required />
             </div>
-            <button type="submit" disabled={loading || otp.length !== 6} style={{ padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading || otp.length !== 6} style={{ padding: '13px', background: '#1B4FD8', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Verifying…' : 'Verify email'}
             </button>
-            <button type="button" onClick={resendOtp} disabled={loading || resendCountdown > 0} style={{ background: 'none', border: 'none', color: resendCountdown > 0 ? 'var(--text-muted)' : 'var(--color-primary)', fontWeight: 600, cursor: resendCountdown > 0 ? 'default' : 'pointer', fontSize: 14 }}>
+            <button type="button" onClick={resendOtp} disabled={loading || resendCountdown > 0} style={{ background: 'none', border: 'none', color: resendCountdown > 0 ? 'rgba(255,255,255,0.3)' : '#6ee7b7', fontWeight: 600, cursor: resendCountdown > 0 ? 'default' : 'pointer', fontSize: 14 }}>
               {resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : 'Resend code'}
             </button>
           </form>
         )}
 
-        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: 'var(--text-secondary)' }}>
+        <p style={{ textAlign: 'center', marginTop: 24, fontSize: 14, color: 'rgba(255,255,255,0.45)' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: 'var(--color-primary)', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
+          <Link to="/login" style={{ color: '#6ee7b7', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
         </p>
       </div>
     </div>

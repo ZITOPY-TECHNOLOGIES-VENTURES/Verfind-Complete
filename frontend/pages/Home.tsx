@@ -123,11 +123,11 @@ export default function Home() {
                 border: 'none',
                 cursor: 'pointer',
                 borderRadius: 20,
-                height: 140,
+                height: 200,
                 backgroundImage: `url('${DISTRICT_IMAGES[district] || DISTRICT_IMAGES.Maitama}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                transition: 'transform .18s, filter .18s',
+                transition: 'transform .18s, box-shadow .18s',
                 position: 'relative',
                 overflow: 'hidden',
                 padding: '14px 16px',
@@ -138,20 +138,20 @@ export default function Home() {
                 textAlign: 'left',
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.filter = 'brightness(1.1)';
+                e.currentTarget.style.transform = 'translateY(-5px)';
+                e.currentTarget.style.boxShadow = '0 12px 36px rgba(0,0,0,0.28)';
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.transform = '';
-                e.currentTarget.style.filter = '';
+                e.currentTarget.style.boxShadow = '';
               }}
             >
               {/* Dark overlay for text legibility */}
-              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.2) 55%, transparent 100%)', pointerEvents: 'none' }} />
-              <div style={{ fontWeight: 800, fontSize: 13, color: '#fff', lineHeight: 1.2, position: 'relative', zIndex: 1, textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.22) 50%, transparent 100%)', pointerEvents: 'none' }} />
+              <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontWeight: 700, fontSize: 16, color: '#fff', lineHeight: 1.2, position: 'relative', zIndex: 1, textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}>
                 {district}
               </div>
-              <div style={{ position: 'absolute', bottom: 12, right: 14, color: 'rgba(255,255,255,0.7)', fontSize: 15, zIndex: 1 }}>
+              <div style={{ position: 'absolute', bottom: 14, right: 16, color: 'rgba(255,255,255,0.65)', fontSize: 17, zIndex: 1 }}>
                 →
               </div>
             </button>
