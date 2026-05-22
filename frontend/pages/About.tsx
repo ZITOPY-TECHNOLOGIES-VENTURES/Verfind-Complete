@@ -49,6 +49,28 @@ export default function About() {
           </p>
         </div>
 
+        {/* Mission & Vision */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+          <div className="glass-card" style={{ borderRadius: 20, padding: '32px 28px', borderTop: '4px solid #1B3068' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(27,48,104,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎯</div>
+              <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Our Mission</h2>
+            </div>
+            <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8, margin: 0 }}>
+              To eliminate the stress of house hunting by providing a secure, video-first marketplace that connects verified agents with pre-screened tenants through trusted physical property checks and seamless escrow payment solutions.
+            </p>
+          </div>
+          <div className="glass-card" style={{ borderRadius: 20, padding: '32px 28px', borderTop: '4px solid #059669' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(5,150,105,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🌍</div>
+              <h2 style={{ fontSize: 18, fontWeight: 900, margin: 0, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Our Vision</h2>
+            </div>
+            <p style={{ fontSize: 15, color: 'var(--text-secondary)', lineHeight: 1.8, margin: 0 }}>
+              To become Africa's most trusted real estate ecosystem, where finding and securing a home is completely transparent, effortless, and fraud-free.
+            </p>
+          </div>
+        </div>
+
         {/* What makes us different */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 60 }}>
           {[
