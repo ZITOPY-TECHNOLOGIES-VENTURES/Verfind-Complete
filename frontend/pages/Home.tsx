@@ -15,13 +15,13 @@ const DISTRICT_IMAGES: Record<string, string> = {
   Guzape:         'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80',
   Apo:            'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80',
   Galadimawa:     'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80',
-  Dawaki:         'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=600&q=80',
+  Dawaki:         'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=600&q=80',
   Lugbe:          'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=600&q=80',
   Kubwa:          'https://images.unsplash.com/photo-1576941089067-2de3c901e126?w=600&q=80',
-  Bwari:          'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=600&q=80',
-  Lokogoma:       'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600&q=80',
-  'Central Area': 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=600&q=80',
-  Mpape:          'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80',
+  Bwari:          'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=600&q=80',
+  Lokogoma:       'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=600&q=80',
+  'Central Area': 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80',
+  Mpape:          'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=600&q=80',
 };
 
 export default function Home() {

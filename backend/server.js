@@ -24,7 +24,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc:        ["'self'", 'https://fonts.gstatic.com'],
       imgSrc:         ["'self'", 'data:', 'https:'],
-      frameSrc:       ['https://www.youtube.com', 'https://player.vimeo.com', 'https://maps.google.com'],
+      frameSrc:       ['https://www.youtube.com', 'https://player.vimeo.com', 'https://maps.google.com', 'https://www.google.com', 'https://maps.googleapis.com'],
       connectSrc:     ["'self'", 'https://api.paystack.co', 'https://standard.paystack.co'],
       frameAncestors: ["'none'"],
     },

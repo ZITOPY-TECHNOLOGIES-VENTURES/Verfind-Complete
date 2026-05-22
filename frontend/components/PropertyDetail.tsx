@@ -12,7 +12,7 @@ interface Props {
 function getVideoEmbedUrl(url: string): string | null {
   // YouTube
   const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?enablejsapi=1&origin=https://getverifind.com`;
   // Vimeo
   const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
   if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
