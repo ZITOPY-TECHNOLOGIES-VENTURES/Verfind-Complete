@@ -8,10 +8,11 @@ import PaymentModal from '../components/PaymentModal';
 import TenantProfile from '../components/TenantProfile';
 import TenantBookings from '../components/TenantBookings';
 import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type PropertyType, type PropertyFilters, DEFAULT_FILTERS } from '../types';
 
 export default function Dashboard() {
-  const { user, logout, refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -114,17 +115,11 @@ export default function Dashboard() {
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} />
+          <button onClick={() => { setShowSaved(false); setShowBookings(false); }} aria-label="Go to dashboard home" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
+          </button>
           <ThemeToggle />
-          <button onClick={() => setShowProfile(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '5px 12px 5px 6px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>
-            <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
-              {(user?.username || 'U')[0].toUpperCase()}
-            </span>
-            {user?.username}
-          </button>
-          <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Sign out
-          </button>
+          <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setShowProfile(true) }]} />
         </div>
       </header>
 

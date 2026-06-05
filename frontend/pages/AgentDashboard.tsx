@@ -5,6 +5,7 @@ import AgentBankSetup from '../components/AgentBankSetup';
 import AgentProfile from '../components/AgentProfile';
 import PropertyDetail from '../components/PropertyDetail';
 import ThemeToggle from '../components/ThemeToggle';
+import UserMenu from '../components/UserMenu';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type Booking, type PropertyType } from '../types';
 
 type Tab = 'listings' | 'bookings' | 'bank' | 'profile';
@@ -20,7 +21,7 @@ const EMPTY_FORM = {
 };
 
 export default function AgentDashboard() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [tab, setTab] = useState<Tab>('listings');
   const [properties, setProperties] = useState<Property[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -159,12 +160,11 @@ export default function AgentDashboard() {
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} />
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-            {user?.businessName || user?.username}
-          </span>
+          <button onClick={() => setTab('listings')} aria-label="Go to dashboard home" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+            <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
+          </button>
           <ThemeToggle />
-          <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>Sign out</button>
+          <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setTab('profile') }]} />
         </div>
       </header>
 
