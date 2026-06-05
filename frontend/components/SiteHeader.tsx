@@ -16,7 +16,6 @@ const NAV_LINKS = [
 
 export default function SiteHeader({ activePage, homeVariant }: Props) {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
