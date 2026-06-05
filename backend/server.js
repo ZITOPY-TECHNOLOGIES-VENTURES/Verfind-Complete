@@ -980,4 +980,11 @@ app.get('*', (_req, res) => res.sendFile(path.join(DIST, 'index.html')));
 
 // ═══════════════════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Verifind V2 — port ${PORT}`));
+
+// Only start the HTTP server when run directly (`node server.js`), not when
+// imported by the test suite (Supertest drives the exported app in-process).
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Verifind V2 — port ${PORT}`));
+}
+
+module.exports = { app, prisma };
