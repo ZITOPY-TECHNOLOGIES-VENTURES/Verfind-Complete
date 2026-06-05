@@ -25,24 +25,24 @@ export default function SiteHeader({ activePage }: Props) {
     : '/login';
 
   const btnPrimary: React.CSSProperties = { background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' };
-  const btnOutline: React.CSSProperties = { background: 'none', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', borderRadius: 10, padding: '9px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' };
+  const btnOutline: React.CSSProperties = { background: 'var(--glass-bg-subtle)', color: 'var(--text-primary)', border: '1.5px solid var(--border-strong)', borderRadius: 10, padding: '9px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' };
   const full: React.CSSProperties = { width: '100%', padding: '13px', borderRadius: 12, fontSize: 15, justifyContent: 'center' };
 
   // Auth controls — identical options on desktop and mobile (mobile = stacked, full-width).
   function authArea(mobile = false) {
     if (user) {
       return (
-        <button onClick={() => { navigate(dashboardPath); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
+        <button className="btn-auth-primary" onClick={() => { navigate(dashboardPath); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
           Dashboard
         </button>
       );
     }
     return (
       <>
-        <button onClick={() => { navigate('/login'); close(); }} style={mobile ? { ...btnOutline, ...full } : btnOutline}>
+        <button className="btn-auth-outline" onClick={() => { navigate('/login'); close(); }} style={mobile ? { ...btnOutline, ...full } : btnOutline}>
           Log in
         </button>
-        <button onClick={() => { navigate('/register'); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
+        <button className="btn-auth-primary" onClick={() => { navigate('/register'); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
           Sign up
         </button>
       </>

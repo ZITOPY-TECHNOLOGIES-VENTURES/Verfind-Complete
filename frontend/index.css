@@ -343,6 +343,10 @@ select {
 .site-nav-link:hover { color: var(--color-primary); }
 .user-menu-item { transition: background .12s ease; }
 .user-menu-item:hover { background: var(--glass-bg-subtle); }
+.btn-auth-primary { transition: filter .15s ease; }
+.btn-auth-primary:hover { filter: brightness(1.08); }
+.btn-auth-outline { transition: border-color .15s ease, background .15s ease; }
+.btn-auth-outline:hover { border-color: var(--color-primary); background: var(--glass-bg); }
 .hamburger-btn  { display: none !important; }
 .site-nav-mobile-menu { display: none; }
 
