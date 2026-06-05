@@ -28,6 +28,12 @@ export default function AdminDashboard() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProp, setSelectedProp] = useState<Property | null>(null);
+  const [toast, setToast] = useState('');
+
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 4000);
+  }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -48,14 +54,14 @@ export default function AdminDashboard() {
     try {
       await api.put(`/api/admin/agents/${agentId}/kyc`, { approved });
       loadData();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message || 'Action failed'); }
   }
 
   async function handleVerify(propertyId: string, verified: boolean) {
     try {
       await api.put(`/api/admin/properties/${propertyId}/verify`, { verified });
       loadData();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message || 'Action failed'); }
   }
 
   const pendingKyc = agents.filter(a => !a.isKycVerified).length;
@@ -179,6 +185,12 @@ export default function AdminDashboard() {
 
       {selectedProp && (
         <PropertyDetail property={selectedProp} onClose={() => setSelectedProp(null)} onPay={() => {}} />
+      )}
+
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 300, background: '#E84C3D', color: '#fff', padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.25)', maxWidth: '90vw' }}>
+          {toast}
+        </div>
       )}
     </div>
   );

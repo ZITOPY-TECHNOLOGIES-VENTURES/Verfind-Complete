@@ -28,6 +28,10 @@ export default function AgentDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editProp, setEditProp] = useState<Property | null>(null);
   const [viewProp, setViewProp] = useState<Property | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
+  const [rescheduleFor, setRescheduleFor] = useState<Booking | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [toast, setToast] = useState('');
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -124,18 +128,31 @@ export default function AgentDashboard() {
     }
   }
 
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 4000);
+  }
+
   async function deleteProp(id: string) {
-    if (!confirm('Delete this listing?')) return;
-    try { await api.delete(`/api/properties/${id}`); loadData(); }
-    catch (err: any) { alert(err.message); }
+    try { await api.delete(`/api/properties/${id}`); setConfirmDelete(null); loadData(); }
+    catch (err: any) { setConfirmDelete(null); showToast(err.message || 'Failed to delete listing'); }
   }
 
   async function handleBookingAction(id: string, status: string, proposedDate?: string) {
     try {
       await api.put(`/api/bookings/${id}`, { status, proposedDate });
       loadData();
-    } catch (err: any) { alert(err.message); }
+    } catch (err: any) { showToast(err.message || 'Action failed'); }
   }
+
+  async function submitReschedule() {
+    if (!rescheduleFor || !rescheduleDate) return;
+    await handleBookingAction(rescheduleFor.id, 'rescheduled', rescheduleDate);
+    setRescheduleFor(null);
+    setRescheduleDate('');
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
@@ -205,7 +222,7 @@ export default function AgentDashboard() {
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                         <button onClick={() => setViewProp(p)} style={{ padding: '7px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>View</button>
                         <button onClick={() => openEdit(p)} style={{ padding: '7px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Edit</button>
-                        <button onClick={() => deleteProp(p.id)} style={{ padding: '7px 14px', background: 'rgba(232,76,61,.1)', border: '1.5px solid rgba(232,76,61,.25)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#E84C3D' }}>Delete</button>
+                        <button onClick={() => setConfirmDelete(p)} style={{ padding: '7px 14px', background: 'rgba(232,76,61,.1)', border: '1.5px solid rgba(232,76,61,.25)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#E84C3D' }}>Delete</button>
                       </div>
                     </div>
                   ))}
@@ -231,10 +248,7 @@ export default function AgentDashboard() {
                   {b.status === 'pending' && (
                     <>
                       <button onClick={() => handleBookingAction(b.id, 'accepted')} style={{ padding: '6px 14px', background: '#dcfce7', color: '#166534', border: 'none', borderRadius: 9, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Accept</button>
-                      <button onClick={() => {
-                        const d = prompt('Propose a new date (YYYY-MM-DD):');
-                        if (d) handleBookingAction(b.id, 'rescheduled', d);
-                      }} style={{ padding: '6px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+                      <button onClick={() => { setRescheduleFor(b); setRescheduleDate(''); }} style={{ padding: '6px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
                         Reschedule
                       </button>
                       <button onClick={() => handleBookingAction(b.id, 'cancelled')} style={{ padding: '6px 14px', background: 'rgba(232,76,61,.1)', border: '1.5px solid rgba(232,76,61,.25)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#E84C3D' }}>Cancel</button>
@@ -255,6 +269,47 @@ export default function AgentDashboard() {
       {/* View listing modal */}
       {viewProp && (
         <PropertyDetail property={viewProp} onClose={() => setViewProp(null)} onPay={() => {}} />
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDelete && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: 400, padding: '28px 26px', borderRadius: 20 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>Delete this listing?</h3>
+            <p style={{ margin: '0 0 22px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              "{confirmDelete.title}" will be permanently removed. This can't be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setConfirmDelete(null)} style={{ flex: 1, padding: '12px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 12, cursor: 'pointer', fontWeight: 700, color: 'var(--text-primary)' }}>Cancel</button>
+              <button onClick={() => deleteProp(confirmDelete.id)} style={{ flex: 1, padding: '12px', background: '#E84C3D', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 700 }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule modal — real date picker, no typed format */}
+      {rescheduleFor && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setRescheduleFor(null); }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: 400, padding: '28px 26px', borderRadius: 20 }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>Propose a new date</h3>
+            <p style={{ margin: '0 0 18px', fontSize: 14, color: 'var(--text-secondary)' }}>{rescheduleFor.propertyTitle}</p>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>New inspection date</label>
+            <input type="date" min={todayStr} value={rescheduleDate} onChange={e => setRescheduleDate(e.target.value)} style={{ width: '100%', marginBottom: 22 }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setRescheduleFor(null)} style={{ flex: 1, padding: '12px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 12, cursor: 'pointer', fontWeight: 700, color: 'var(--text-primary)' }}>Cancel</button>
+              <button onClick={submitReschedule} disabled={!rescheduleDate} style={{ flex: 1, padding: '12px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 12, cursor: rescheduleDate ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: rescheduleDate ? 1 : 0.6 }}>Propose Date</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast (replaces alert) */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 300, background: '#E84C3D', color: '#fff', padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.25)', maxWidth: '90vw' }}>
+          {toast}
+        </div>
       )}
 
       {/* Listing form modal */}
