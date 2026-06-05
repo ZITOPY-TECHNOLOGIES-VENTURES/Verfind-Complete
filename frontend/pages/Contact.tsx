@@ -30,7 +30,7 @@ export default function Contact() {
           <p style={{ fontSize: 16, color: 'var(--text-secondary)', margin: 0 }}>We typically respond within 2 hours during business hours (Mon–Fri, 8am–6pm WAT).</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: 32, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32, alignItems: 'start' }}>
 
           {/* Contact cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

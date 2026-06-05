@@ -334,6 +334,21 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════
 
 // GET /api/properties
+// GET /api/stats — public homepage metrics (real counts, no fakes)
+app.get('/api/stats', async (_req, res) => {
+  try {
+    const [activeListings, verifiedProperties, certifiedAgents] = await Promise.all([
+      prisma.property.count({ where: { status: 'available' } }),
+      prisma.property.count({ where: { isVerified: true } }),
+      prisma.user.count({ where: { role: 'agent', isKycVerified: true } }),
+    ]);
+    res.json({ success: true, stats: { activeListings, verifiedProperties, certifiedAgents } });
+  } catch (err) {
+    console.error('GET /api/stats:', err.message);
+    res.status(500).json({ message: 'Failed to fetch stats' });
+  }
+});
+
 app.get('/api/properties', async (req, res) => {
   try {
     const { district, type, status, listingMode, agentId, search, page = '1', limit = '20' } = req.query;
@@ -569,7 +584,7 @@ app.put('/api/bookings/:id', auth, requireRole('agent'), async (req, res) => {
     if (booking.agentId !== req.user.id) return res.status(403).json({ message: 'Not your booking' });
 
     const { status, agentNote, proposedDate } = req.body;
-    const ALLOWED_BOOKING_STATUSES = ['pending', 'confirmed', 'cancelled'];
+    const ALLOWED_BOOKING_STATUSES = ['pending', 'accepted', 'rescheduled', 'cancelled'];
     const data = {};
     if (status) {
       if (!ALLOWED_BOOKING_STATUSES.includes(status))

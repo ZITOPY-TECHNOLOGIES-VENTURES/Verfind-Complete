@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ABUJA_DISTRICTS } from '../types';
+import api from '../services/api';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
+
+interface Stats { activeListings: number; verifiedProperties: number; certifiedAgents: number; }
 
 const DISTRICT_IMAGES: Record<string, string> = {
   Maitama:        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80',
@@ -27,6 +30,13 @@ const DISTRICT_IMAGES: Record<string, string> = {
 export default function Home() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    api.get<{ stats: Stats }>('/api/stats')
+      .then(res => setStats(res.stats))
+      .catch(() => {});
+  }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +53,7 @@ export default function Home() {
       <SiteHeader homeVariant />
 
       {/* Hero — real photo background */}
-      <section style={{ position: 'relative', overflow: 'hidden', backgroundImage: "url('/abuja_hero.png')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '80px 24px 72px' }}>
+      <section style={{ position: 'relative', overflow: 'hidden', backgroundImage: "url('/abuja_hero.png')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '80px 24px 96px' }}>
         {/* Dark overlay */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(10,22,40,0.95) 0%, rgba(10,22,40,0.80) 50%, rgba(10,22,40,0.45) 100%)', pointerEvents: 'none' }} />
 
@@ -72,14 +82,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 24px 48px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16 }}>
+      {/* Stats bar — real counts, floats over the hero edge */}
+      <div style={{ maxWidth: 900, margin: '-56px auto 0', padding: '0 24px 56px', position: 'relative', zIndex: 5 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           {[
-            { value: '553+', label: 'Active Listings' },
-            { value: '412', label: 'Verified Properties' },
-            { value: '87', label: 'Certified Agents' },
-            { value: '17', label: 'FCT Districts' },
+            { value: stats ? stats.activeListings.toLocaleString() : '—', label: 'Active Listings' },
+            { value: stats ? stats.verifiedProperties.toLocaleString() : '—', label: 'Verified Properties' },
+            { value: stats ? stats.certifiedAgents.toLocaleString() : '—', label: 'Certified Agents' },
+            { value: String(ABUJA_DISTRICTS.length), label: 'FCT Districts' },
           ].map(s => (
             <div key={s.label} className="glass-card" style={{ padding: '20px 16px', borderRadius: 18, textAlign: 'center' }}>
               <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--color-primary)' }}>{s.value}</div>

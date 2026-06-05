@@ -1,10 +1,21 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ABUJA_DISTRICTS } from '../types';
+import api from '../services/api';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
 
+interface Stats { activeListings: number; verifiedProperties: number; certifiedAgents: number; }
+
 export default function About() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    api.get<{ stats: Stats }>('/api/stats')
+      .then(res => setStats(res.stats))
+      .catch(() => {});
+  }, []);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column' }}>
@@ -26,10 +37,10 @@ export default function About() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 16, marginBottom: 60 }}>
           {[
-            { value: '412+', label: 'Verified Listings' },
-            { value: '87', label: 'Certified Agents' },
+            { value: stats ? stats.verifiedProperties.toLocaleString() : '—', label: 'Verified Listings' },
+            { value: stats ? stats.certifiedAgents.toLocaleString() : '—', label: 'Certified Agents' },
             { value: '₦0', label: 'Tenant Fraud Since Launch' },
-            { value: '17', label: 'Abuja Districts' },
+            { value: String(ABUJA_DISTRICTS.length), label: 'Abuja Districts' },
           ].map(s => (
             <div key={s.label} className="glass-card" style={{ padding: '24px 20px', borderRadius: 18, textAlign: 'center' }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--color-primary)', marginBottom: 6 }}>{s.value}</div>

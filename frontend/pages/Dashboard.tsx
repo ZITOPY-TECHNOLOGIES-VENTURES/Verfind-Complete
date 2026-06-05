@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import api from '../services/api';
 import PropertyCard from '../components/PropertyCard';
 import PropertyDetail from '../components/PropertyDetail';
 import PaymentModal from '../components/PaymentModal';
+import TenantProfile from '../components/TenantProfile';
+import TenantBookings from '../components/TenantBookings';
+import ThemeToggle from '../components/ThemeToggle';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type PropertyType, type PropertyFilters, DEFAULT_FILTERS } from '../types';
 
 export default function Dashboard() {
   const { user, logout, refreshUser } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [searchParams] = useSearchParams();
 
   const [properties, setProperties] = useState<Property[]>([]);
@@ -24,6 +25,8 @@ export default function Dashboard() {
   const [selected, setSelected] = useState<Property | null>(null);
   const [payProp, setPayProp] = useState<Property | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showBookings, setShowBookings] = useState(false);
 
   const [favIds, setFavIds] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<Property[]>([]);
@@ -112,12 +115,13 @@ export default function Dashboard() {
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto', marginRight: 'auto' }} />
-          <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
+          <ThemeToggle />
+          <button onClick={() => setShowProfile(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '5px 12px 5px 6px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}>
+            <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 13 }}>
+              {(user?.username || 'U')[0].toUpperCase()}
+            </span>
             {user?.username}
-          </span>
+          </button>
           <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>
             Sign out
           </button>
@@ -165,17 +169,22 @@ export default function Dashboard() {
             placeholder="Search properties…"
             style={{ flex: 1, minWidth: 200 }}
             onKeyDown={e => e.key === 'Enter' && loadProperties()}
-            disabled={showSaved}
+            disabled={showSaved || showBookings}
           />
           {user?.role === 'tenant' && (
-            <button onClick={() => { setShowSaved(s => { if (!s) loadFavorites(); return !s; }); }} style={{ padding: '11px 16px', background: showSaved ? 'var(--color-primary)' : 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: showSaved ? '#fff' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              ♡ Saved {favIds.size > 0 && `(${favIds.size})`}
-            </button>
+            <>
+              <button onClick={() => { setShowBookings(false); setShowSaved(s => { if (!s) loadFavorites(); return !s; }); }} style={{ padding: '11px 16px', background: showSaved ? 'var(--color-primary)' : 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: showSaved ? '#fff' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                ♡ Saved {favIds.size > 0 && `(${favIds.size})`}
+              </button>
+              <button onClick={() => { setShowSaved(false); setShowBookings(b => !b); }} style={{ padding: '11px 16px', background: showBookings ? 'var(--color-primary)' : 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: showBookings ? '#fff' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                📅 My Bookings
+              </button>
+            </>
           )}
-          <button onClick={() => setShowFilters(f => !f)} disabled={showSaved} style={{ padding: '11px 16px', background: 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', opacity: showSaved ? 0.5 : 1 }}>
+          <button onClick={() => setShowFilters(f => !f)} disabled={showSaved || showBookings} style={{ padding: '11px 16px', background: 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', whiteSpace: 'nowrap', opacity: (showSaved || showBookings) ? 0.5 : 1 }}>
             Filters {showFilters ? '▲' : '▼'}
           </button>
-          <button onClick={loadProperties} disabled={showSaved} style={{ padding: '11px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', opacity: showSaved ? 0.5 : 1 }}>
+          <button onClick={loadProperties} disabled={showSaved || showBookings} style={{ padding: '11px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap', opacity: (showSaved || showBookings) ? 0.5 : 1 }}>
             Search
           </button>
         </div>
@@ -207,7 +216,7 @@ export default function Dashboard() {
         )}
 
         {/* Results header */}
-        {!showSaved && (
+        {!showSaved && !showBookings && (
           <div style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: 14 }}>
             {loading ? 'Loading…' : `${total} propert${total === 1 ? 'y' : 'ies'} found`}
             {filters.district && ` in ${filters.district}`}
@@ -218,9 +227,16 @@ export default function Dashboard() {
             {favLoading ? 'Loading…' : `${favorites.length} saved propert${favorites.length === 1 ? 'y' : 'ies'}`}
           </div>
         )}
+        {showBookings && (
+          <div style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600 }}>
+            My inspection bookings
+          </div>
+        )}
 
         {/* Property grid */}
-        {showSaved ? (
+        {showBookings ? (
+          <TenantBookings />
+        ) : showSaved ? (
           favLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
               {[...Array(3)].map((_, i) => (
@@ -278,6 +294,9 @@ export default function Dashboard() {
           onSuccess={() => { setPayProp(null); loadProperties(); }}
         />
       )}
+
+      {/* Profile modal */}
+      {showProfile && <TenantProfile onClose={() => setShowProfile(false)} />}
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import api from '../services/api';
 import { PROPERTY_TYPE_LABELS, type Property, type PropertyType } from '../types';
 import PropertyDetail from '../components/PropertyDetail';
+import ThemeToggle from '../components/ThemeToggle';
 
 type Tab = 'agents' | 'properties';
 
@@ -23,7 +23,6 @@ interface Agent {
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>('agents');
   const [agents, setAgents] = useState<Agent[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -71,7 +70,7 @@ export default function AdminDashboard() {
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
           </div>
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{user?.username}</span>
-          <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+          <ThemeToggle />
           <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>Sign out</button>
         </div>
       </header>

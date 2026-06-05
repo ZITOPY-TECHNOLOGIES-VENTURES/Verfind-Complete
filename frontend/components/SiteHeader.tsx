@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import ThemeToggle from './ThemeToggle';
 
 interface Props {
   activePage?: 'about' | 'how-it-works' | 'contact' | 'faq';
@@ -79,9 +79,7 @@ export default function SiteHeader({ activePage, homeVariant }: Props) {
               {l.label}
             </Link>
           ))}
-          <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-secondary)' }}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <ThemeToggle />
           {authButton()}
         </nav>
 
@@ -120,9 +118,7 @@ export default function SiteHeader({ activePage, homeVariant }: Props) {
             </Link>
           ))}
           <div style={{ display: 'flex', gap: 12, paddingTop: 16, alignItems: 'center' }}>
-            <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20 }}>
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
+            <ThemeToggle size={40} />
             <div style={{ flex: 1 }}>
               {authButton(true)}
             </div>

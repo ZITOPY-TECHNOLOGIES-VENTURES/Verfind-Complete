@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import api from '../services/api';
 import AgentBankSetup from '../components/AgentBankSetup';
+import AgentProfile from '../components/AgentProfile';
+import PropertyDetail from '../components/PropertyDetail';
+import ThemeToggle from '../components/ThemeToggle';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type Booking, type PropertyType } from '../types';
 
-type Tab = 'listings' | 'bookings' | 'bank';
+type Tab = 'listings' | 'bookings' | 'bank' | 'profile';
 
 const EMPTY_FORM = {
   title: '', description: '', district: '', address: '',
@@ -19,13 +21,13 @@ const EMPTY_FORM = {
 
 export default function AgentDashboard() {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [tab, setTab] = useState<Tab>('listings');
   const [properties, setProperties] = useState<Property[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editProp, setEditProp] = useState<Property | null>(null);
+  const [viewProp, setViewProp] = useState<Property | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
@@ -144,7 +146,7 @@ export default function AgentDashboard() {
           <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
             {user?.businessName || user?.username}
           </span>
-          <button onClick={toggleTheme} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+          <ThemeToggle />
           <button onClick={logout} style={{ fontSize: 13, background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 9, padding: '6px 13px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600 }}>Sign out</button>
         </div>
       </header>
@@ -152,7 +154,7 @@ export default function AgentDashboard() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 20 }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: '1.5px solid var(--border-color)', paddingBottom: 0 }}>
-          {([['listings', 'My Listings'], ['bookings', 'Booking Requests'], ['bank', 'Bank Setup']] as [Tab, string][]).map(([t, label]) => (
+          {([['listings', 'My Listings'], ['bookings', 'Booking Requests'], ['bank', 'Bank Setup'], ['profile', 'Profile']] as [Tab, string][]).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
               fontWeight: 700, fontSize: 14, color: tab === t ? 'var(--color-primary)' : 'var(--text-muted)',
@@ -201,6 +203,7 @@ export default function AgentDashboard() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                        <button onClick={() => setViewProp(p)} style={{ padding: '7px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>View</button>
                         <button onClick={() => openEdit(p)} style={{ padding: '7px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Edit</button>
                         <button onClick={() => deleteProp(p.id)} style={{ padding: '7px 14px', background: 'rgba(232,76,61,.1)', border: '1.5px solid rgba(232,76,61,.25)', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#E84C3D' }}>Delete</button>
                       </div>
@@ -245,7 +248,14 @@ export default function AgentDashboard() {
         )}
 
         {tab === 'bank' && <AgentBankSetup />}
+
+        {tab === 'profile' && <AgentProfile />}
       </div>
+
+      {/* View listing modal */}
+      {viewProp && (
+        <PropertyDetail property={viewProp} onClose={() => setViewProp(null)} onPay={() => {}} />
+      )}
 
       {/* Listing form modal */}
       {showForm && (
