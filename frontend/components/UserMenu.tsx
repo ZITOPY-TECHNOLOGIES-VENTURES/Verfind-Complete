@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface MenuItem { label: string; icon?: string; onClick: () => void; }
 
@@ -15,8 +16,11 @@ interface Props {
  */
 export default function UserMenu({ items = [] }: Props) {
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   if (!user) return null;
+
+  const surface = theme === 'dark' ? '#2C2C2E' : '#FFFFFF';
 
   const initial = (user.username || 'U')[0].toUpperCase();
 
@@ -39,9 +43,11 @@ export default function UserMenu({ items = [] }: Props) {
         <>
           {/* click-away backdrop */}
           <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 100 }} />
-          <div className="glass-card" style={{
+          <div style={{
             position: 'absolute', top: 'calc(100% + 10px)', right: 0, zIndex: 101,
-            minWidth: 220, borderRadius: 16, padding: 8, boxShadow: '0 12px 36px rgba(0,0,0,0.18)',
+            minWidth: 220, borderRadius: 16, padding: 8,
+            background: surface, border: '1px solid var(--border-color)',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.28)',
           }}>
             <div style={{ padding: '10px 12px 12px', borderBottom: '1px solid var(--border-color)', marginBottom: 6 }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.username}</div>
