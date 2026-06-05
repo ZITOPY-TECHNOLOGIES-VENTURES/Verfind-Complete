@@ -1,20 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
 
 export default function Contact() {
-  const [form, setForm] = useState({ name: '', email: '', category: 'tenant', message: '' });
-  const [sent, setSent] = useState(false);
-  const [sending, setSending] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSending(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSent(true);
-    setSending(false);
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column' }}>
       <SiteHeader activePage="contact" />
@@ -30,7 +18,7 @@ export default function Contact() {
           <p style={{ fontSize: 16, color: 'var(--text-secondary)', margin: 0 }}>We typically respond within 2 hours during business hours (Mon–Fri, 8am–6pm WAT).</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 32, alignItems: 'start' }}>
+        <div style={{ maxWidth: 560, margin: '0 auto' }}>
 
           {/* Contact cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -73,53 +61,6 @@ export default function Contact() {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Contact form */}
-          <div className="glass-card" style={{ borderRadius: 20, padding: '32px 28px' }}>
-            {sent ? (
-              <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
-                <h3 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 10px', color: 'var(--text-primary)' }}>Message Sent!</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 15 }}>We'll get back to you within 2 hours. Check your email for a confirmation.</p>
-                <button onClick={() => { setSent(false); setForm({ name: '', email: '', category: 'tenant', message: '' }); }}
-                  style={{ marginTop: 20, padding: '10px 24px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
-                  Send Another
-                </button>
-              </div>
-            ) : (
-              <>
-                <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 24px', color: 'var(--text-primary)' }}>Send Us a Message</h2>
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Name *</label>
-                      <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" required />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Email *</label>
-                      <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@email.com" required />
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>I am a</label>
-                    <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}>
-                      <option value="tenant">Tenant</option>
-                      <option value="agent">Agent</option>
-                      <option value="landlord">Landlord</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Message *</label>
-                    <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} rows={5} placeholder="How can we help?" required style={{ resize: 'vertical' }} />
-                  </div>
-                  <button type="submit" disabled={sending} style={{ padding: '13px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: sending ? 'not-allowed' : 'pointer', opacity: sending ? 0.7 : 1 }}>
-                    {sending ? 'Sending…' : 'Send Message'}
-                  </button>
-                </form>
-              </>
-            )}
           </div>
         </div>
       </div>
