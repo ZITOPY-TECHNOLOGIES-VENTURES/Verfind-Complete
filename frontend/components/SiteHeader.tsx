@@ -112,9 +112,8 @@ export default function SiteHeader({ activePage }: Props) {
           ))}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 18 }}>
             {authArea(true)}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
-              <ThemeToggle size={40} />
-              <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600 }}>Switch theme</span>
+            <div style={{ paddingTop: 4 }}>
+              <ThemeToggle size={40} label="Switch theme" />
             </div>
           </div>
         </div>
