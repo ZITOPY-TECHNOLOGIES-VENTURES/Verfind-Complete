@@ -46,16 +46,16 @@ export default function Contact() {
               },
             ].map(c => (
               <div key={c.title} className="glass-card" style={{ borderRadius: 18, padding: '20px 22px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', rowGap: 12 }}>
                   <div style={{ fontSize: 24, flexShrink: 0 }}>{c.icon}</div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: '1 1 160px', minWidth: 0 }}>
                     <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', marginBottom: 4 }}>{c.title}</div>
                     {c.lines.map((l, i) => (
-                      <div key={i} style={{ fontSize: 14, color: i === 0 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: i === 0 ? 600 : 400 }}>{l}</div>
+                      <div key={i} style={{ fontSize: 14, color: i === 0 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: i === 0 ? 600 : 400, overflowWrap: 'anywhere' }}>{l}</div>
                     ))}
                   </div>
                   <a href={c.href} target={c.href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer"
-                    style={{ padding: '7px 14px', background: 'var(--color-primary)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    style={{ padding: '8px 16px', background: 'var(--color-primary)', color: '#fff', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: 'auto' }}>
                     {c.cta}
                   </a>
                 </div>

@@ -5,7 +5,6 @@ import ThemeToggle from './ThemeToggle';
 
 interface Props {
   activePage?: 'about' | 'how-it-works' | 'contact' | 'faq';
-  homeVariant?: boolean;
 }
 
 const NAV_LINKS = [
@@ -14,48 +13,39 @@ const NAV_LINKS = [
   { label: 'Contact', to: '/contact', key: 'contact' },
 ];
 
-export default function SiteHeader({ activePage, homeVariant }: Props) {
+export default function SiteHeader({ activePage }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   function close() { setOpen(false); }
 
-  function authButton(fullWidth = false) {
-    const style: React.CSSProperties = {
-      padding: fullWidth ? '12px' : '8px 18px',
-      background: 'var(--color-primary)',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 10,
-      fontWeight: 700,
-      cursor: 'pointer',
-      fontSize: 14,
-      ...(fullWidth ? { width: '100%', borderRadius: 12, fontSize: 15 } : {}),
-    };
+  const dashboardPath = user
+    ? (user.role === 'agent' ? '/agent' : user.role === 'admin' ? '/admin' : '/dashboard')
+    : '/login';
+
+  const btnPrimary: React.CSSProperties = { background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 10, padding: '9px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' };
+  const btnOutline: React.CSSProperties = { background: 'none', color: 'var(--text-primary)', border: '1.5px solid var(--border-color)', borderRadius: 10, padding: '9px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' };
+  const full: React.CSSProperties = { width: '100%', padding: '13px', borderRadius: 12, fontSize: 15, justifyContent: 'center' };
+
+  // Auth controls — identical options on desktop and mobile (mobile = stacked, full-width).
+  function authArea(mobile = false) {
     if (user) {
       return (
-        <button onClick={() => { navigate(user.role === 'agent' ? '/agent' : '/dashboard'); close(); }} style={style}>
+        <button onClick={() => { navigate(dashboardPath); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
           Dashboard
         </button>
       );
     }
-    if (homeVariant && !fullWidth) {
-      return (
-        <>
-          <button onClick={() => navigate('/login')} style={{ background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 10, padding: '7px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
-            Log in
-          </button>
-          <button onClick={() => navigate('/register')} style={{ background: 'var(--color-primary)', border: 'none', borderRadius: 10, padding: '8px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14, color: '#fff' }}>
-            Sign up
-          </button>
-        </>
-      );
-    }
     return (
-      <button onClick={() => { navigate('/login'); close(); }} style={style}>
-        Sign In
-      </button>
+      <>
+        <button onClick={() => { navigate('/login'); close(); }} style={mobile ? { ...btnOutline, ...full } : btnOutline}>
+          Log in
+        </button>
+        <button onClick={() => { navigate('/register'); close(); }} style={mobile ? { ...btnPrimary, ...full } : btnPrimary}>
+          Sign up
+        </button>
+      </>
     );
   }
 
@@ -67,19 +57,23 @@ export default function SiteHeader({ activePage, homeVariant }: Props) {
         </Link>
 
         {/* Desktop nav */}
-        <nav className="site-nav-links" style={{ marginLeft: 'auto' }}>
-          {NAV_LINKS.map(l => (
-            <Link key={l.key} to={l.to} style={{
-              fontSize: 14,
-              color: activePage === l.key ? 'var(--color-primary)' : 'var(--text-secondary)',
-              fontWeight: activePage === l.key ? 700 : 600,
-              textDecoration: 'none',
-            }}>
-              {l.label}
-            </Link>
-          ))}
-          <ThemeToggle />
-          {authButton()}
+        <nav className="site-nav-links" style={{ marginLeft: 'auto', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+            {NAV_LINKS.map(l => (
+              <Link key={l.key} to={l.to} className="site-nav-link" style={{
+                fontSize: 14,
+                color: activePage === l.key ? 'var(--color-primary)' : 'var(--text-secondary)',
+                fontWeight: activePage === l.key ? 700 : 600,
+                textDecoration: 'none',
+              }}>
+                {l.label}
+              </Link>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ThemeToggle />
+            {authArea(false)}
+          </div>
         </nav>
 
         {/* Hamburger (mobile only) */}
@@ -116,10 +110,11 @@ export default function SiteHeader({ activePage, homeVariant }: Props) {
               {l.label}
             </Link>
           ))}
-          <div style={{ display: 'flex', gap: 12, paddingTop: 16, alignItems: 'center' }}>
-            <ThemeToggle size={40} />
-            <div style={{ flex: 1 }}>
-              {authButton(true)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 18 }}>
+            {authArea(true)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 4 }}>
+              <ThemeToggle size={40} />
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)', fontWeight: 600 }}>Switch theme</span>
             </div>
           </div>
         </div>

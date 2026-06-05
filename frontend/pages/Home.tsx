@@ -50,7 +50,7 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
 
-      <SiteHeader homeVariant />
+      <SiteHeader />
 
       {/* Hero — real photo background */}
       <section style={{ position: 'relative', overflow: 'hidden', backgroundImage: "url('/abuja_hero.png')", backgroundSize: 'cover', backgroundPosition: 'center', padding: '80px 24px 96px' }}>

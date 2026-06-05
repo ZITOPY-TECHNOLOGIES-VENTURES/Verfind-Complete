@@ -339,6 +339,8 @@ select {
 
 /* ── Site Header — Mobile Hamburger ── */
 .site-nav-links { display: flex; align-items: center; gap: 12px; }
+.site-nav-link  { transition: color .15s ease; }
+.site-nav-link:hover { color: var(--color-primary); }
 .hamburger-btn  { display: none !important; }
 .site-nav-mobile-menu { display: none; }
 
