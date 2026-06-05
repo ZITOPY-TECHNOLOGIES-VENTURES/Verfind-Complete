@@ -78,8 +78,10 @@ export default function AdminDashboard() {
             </button>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Admin</span>
           </div>
-          <ThemeToggle />
-          <UserMenu />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ThemeToggle size={38} />
+            <UserMenu />
+          </div>
         </div>
       </header>
 

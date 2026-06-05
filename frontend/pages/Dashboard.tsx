@@ -118,8 +118,10 @@ export default function Dashboard() {
           <button onClick={() => { setShowSaved(false); setShowBookings(false); }} aria-label="Go to dashboard home" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
             <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
           </button>
-          <ThemeToggle />
-          <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setShowProfile(true) }]} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ThemeToggle size={38} />
+            <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setShowProfile(true) }]} />
+          </div>
         </div>
       </header>
 

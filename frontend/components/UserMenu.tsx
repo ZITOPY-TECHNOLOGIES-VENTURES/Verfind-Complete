@@ -48,12 +48,13 @@ export default function UserMenu({ items = [] }: Props) {
               <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.email}</div>
             </div>
             {items.map(item => (
-              <button key={item.label} onClick={() => { setOpen(false); item.onClick(); }} style={menuItemStyle}>
+              <button key={item.label} className="user-menu-item" onClick={() => { setOpen(false); item.onClick(); }} style={menuItemStyle}>
                 {item.icon && <span style={{ fontSize: 15 }}>{item.icon}</span>}{item.label}
               </button>
             ))}
-            <button onClick={() => { setOpen(false); logout(); }} style={{ ...menuItemStyle, color: '#E84C3D' }}>
-              Sign out
+            {items.length > 0 && <div style={{ height: 1, background: 'var(--border-color)', margin: '6px 4px' }} />}
+            <button className="user-menu-item" onClick={() => { setOpen(false); logout(); }} style={{ ...menuItemStyle, color: '#E84C3D' }}>
+              <span style={{ fontSize: 15 }}>⏻</span>Sign out
             </button>
           </div>
         </>
