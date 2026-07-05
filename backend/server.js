@@ -12,6 +12,18 @@ const { PrismaClient } = require('@prisma/client');
 const app = express();
 const prisma = new PrismaClient();
 
+// ── Proxy trust ──────────────────────────────────────────────────────────────
+// Render and Railway terminate TLS at their load balancer (and a Cloudflare
+// Worker sits in front in production), so requests reach us with X-Forwarded-*
+// headers. Trusting the proxy lets express-rate-limit key on the real client IP
+// and lets Express see the correct https protocol / hostname. Configurable via
+// TRUST_PROXY_HOPS; defaults to 1 in a known hosting env, off locally.
+const isProdEnv = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RENDER);
+const trustProxyHops = process.env.TRUST_PROXY_HOPS
+  ? Number(process.env.TRUST_PROXY_HOPS)
+  : (isProdEnv ? 1 : false);
+app.set('trust proxy', trustProxyHops);
+
 // ── Security & CORS ────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map(s => s.trim()).filter(Boolean);

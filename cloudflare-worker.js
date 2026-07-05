@@ -25,10 +25,17 @@
  *   FRONTEND_URL=https://getverifind.com
  */
 
+// ─── ORIGIN ───────────────────────────────────────────────────────────────
+// The backend host this Worker forwards traffic to.
+// RAILWAY CUTOVER (Phase 4): change this to the Railway public domain, e.g.
+//   'verfind-production.up.railway.app'
+// then re-deploy the Worker. That's the only line that changes.
+const ORIGIN_HOST = 'verfind-production.onrender.com';
+
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    url.hostname = 'verfind-production.onrender.com';
+    url.hostname = ORIGIN_HOST;
 
     const newRequest = new Request(url.toString(), {
       method: request.method,
