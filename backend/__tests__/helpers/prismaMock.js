@@ -12,7 +12,7 @@
 
 const crypto = require('crypto');
 
-const MODELS = ['user', 'property', 'booking', 'payment', 'agentBank', 'favorite', 'pendingReg'];
+const MODELS = ['user', 'property', 'booking', 'payment', 'agentBank', 'favorite', 'pendingReg', 'tenantRequest'];
 const store = {};
 function reset() { MODELS.forEach(m => { store[m] = []; }); }
 reset();
