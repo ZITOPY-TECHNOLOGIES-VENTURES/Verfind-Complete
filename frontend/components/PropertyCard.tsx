@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PROPERTY_TYPE_LABELS, type Property } from '../types';
+import { formatRelativeTime } from '../utils/formatTime';
 
 interface Props {
   property: Property;
@@ -22,6 +23,8 @@ export default function PropertyCard({ property: p, onClick, onFavorite, isFavor
     e.stopPropagation();
     setImgIdx(i => (i + 1) % p.images.length);
   }
+
+  const relativeTime = formatRelativeTime(p.createdAt);
 
   return (
     <div
@@ -63,14 +66,24 @@ export default function PropertyCard({ property: p, onClick, onFavorite, isFavor
         {/* Dark gradient vignette */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 50%, transparent 100%)', pointerEvents: 'none' }} />
 
-        {/* Top row: verification badge + video badge */}
-        <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6 }}>
-          <div style={{
-            background: p.isVerified ? 'rgba(5,150,105,0.88)' : 'rgba(180,83,9,0.82)',
-            color: '#fff', borderRadius: 99, fontSize: 10, padding: '3px 10px', fontWeight: 700,
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', letterSpacing: '0.04em',
-          }}>
-            {p.isVerified ? '✓ Verified' : '• Pending'}
+        {/* Top row: verification badge + video badge + relative time */}
+        <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{
+              background: p.isVerified ? 'rgba(5,150,105,0.88)' : 'rgba(180,83,9,0.82)',
+              color: '#fff', borderRadius: 99, fontSize: 10, padding: '3px 10px', fontWeight: 700,
+              backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', letterSpacing: '0.04em',
+            }}>
+              {p.isVerified ? '✓ Verified' : '• Pending'}
+            </div>
+            {relativeTime && (
+              <div style={{
+                background: 'rgba(0,0,0,0.52)', color: '#fff', borderRadius: 99, fontSize: 10, padding: '3px 9px', fontWeight: 600,
+                backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+              }}>
+                🕒 {relativeTime}
+              </div>
+            )}
           </div>
           {p.videoUrl && (
             <div style={{ background: 'rgba(0,0,0,0.52)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', color: '#fff', borderRadius: 99, fontSize: 10, padding: '3px 9px', fontWeight: 700 }}>
@@ -152,10 +165,10 @@ export default function PropertyCard({ property: p, onClick, onFavorite, isFavor
           </div>
         )}
 
-        {/* Agent row */}
+        {/* Agent row / Source */}
         <div style={{ marginTop: 'auto', paddingTop: 10, borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 11, color: 'var(--text-muted)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            by {p.agentName || 'Agent'}
+            {p.listedBy || `by ${p.agentName || 'Agent'}`}
           </span>
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
             {p.agentIsKycVerified && (

@@ -25,8 +25,10 @@ const trustProxyHops = process.env.TRUST_PROXY_HOPS
 app.set('trust proxy', trustProxyHops);
 
 // ── Security & CORS ────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+const parsedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',').map(s => s.trim()).filter(Boolean);
+const DEFAULT_DEV_ORIGINS = ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+const ALLOWED_ORIGINS = parsedOrigins.length > 0 ? parsedOrigins : DEFAULT_DEV_ORIGINS;
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -44,7 +46,7 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (!origin || ALLOWED_ORIGINS.includes(origin) || (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))) return cb(null, true);
     cb(new Error(`CORS: origin not allowed — ${origin}`));
   },
   credentials: true,
@@ -78,26 +80,63 @@ function requireRole(...roles) {
 
 // ── Brevo email ────────────────────────────────────────────────────────────
 async function sendEmail(to, subject, htmlContent) {
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'api-key': process.env.BREVO_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: {
-        name: process.env.BREVO_SENDER_NAME || 'Verifind',
-        email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_FROM || 'noreply@getverifind.com',
-      },
-      to: [{ email: to }],
-      subject,
-      htmlContent,
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Brevo error: ${err}`);
+  if (!process.env.BREVO_API_KEY || !process.env.BREVO_API_KEY.startsWith('xkeysib-')) {
+    console.log(`\n==================================================`);
+    console.log(`[DEV MODE EMAIL LOG] Target: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`==================================================\n`);
+    return;
   }
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: {
+          name: process.env.BREVO_SENDER_NAME || 'Verifind',
+          email: process.env.BREVO_SENDER_EMAIL || process.env.EMAIL_FROM || 'noreply@getverifind.com',
+        },
+        to: [{ email: to }],
+        subject,
+        htmlContent,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      console.error(`Brevo error (${res.status}): ${err}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[DEV FALLBACK] Proceeding despite Brevo error for ${to}`);
+        return;
+      }
+      throw new Error(`Brevo error: ${err}`);
+    }
+  } catch (err) {
+    console.error('sendEmail failure:', err.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn(`[DEV FALLBACK] Proceeding despite email error for ${to}`);
+      return;
+    }
+    throw err;
+  }
+}
+
+function welcomeEmail(name) {
+  return `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:40px 32px;background:#F8FAFF;border-radius:16px">
+    <div style="text-align:center;margin-bottom:32px">
+      <span style="font-size:28px;font-weight:900;letter-spacing:-1px">
+        <span style="color:#1B3068">Veri</span><span style="color:#2D8B1E">find</span>
+      </span>
+    </div>
+    <h2 style="color:#1B3068;margin:0 0 12px">Welcome to Verifind, ${name}!</h2>
+    <p style="color:#555;margin:0 0 20px;line-height:1.6">Your account has been successfully verified. You can now browse verified Abuja real estate, schedule video walkthroughs, and make secure escrow payments.</p>
+    <div style="text-align:center;margin-top:28px">
+      <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" style="background:#0A66C2;color:#fff;padding:12px 24px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block">Explore Verifind</a>
+    </div>
+  </div>`;
 }
 
 function otpEmail(code) {
@@ -170,6 +209,26 @@ function safeUser(user) {
   return rest;
 }
 
+function formatProperty(p) {
+  if (!p) return p;
+  let images = p.images;
+  if (typeof images === 'string') {
+    try { images = JSON.parse(images); } catch { images = []; }
+  }
+  if (!Array.isArray(images)) images = [];
+
+  let categorizedImages = p.categorizedImages;
+  if (typeof categorizedImages === 'string') {
+    try { categorizedImages = JSON.parse(categorizedImages); } catch { categorizedImages = null; }
+  }
+
+  return {
+    ...p,
+    images,
+    categorizedImages,
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // AUTH ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
@@ -197,11 +256,22 @@ app.post('/api/auth/send-otp', authLimiter, async (req, res) => {
       update: { username, password: hashed, role: safeRole, phone, nin, otp, otpExpiry, attempts: 0 },
     });
 
+    console.log(`\n==================================================`);
+    console.log(`🔑 VERIFICATION CODE FOR ${email}: ${otp}`);
+    console.log(`==================================================\n`);
+
     await sendEmail(email, 'Your Verifind verification code', otpEmail(otp));
-    res.json({ success: true, message: 'Verification code sent' });
+    res.json({
+      success: true,
+      message: 'Verification code sent',
+      devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
+    });
   } catch (err) {
-    console.error('send-otp:', err.message);
-    res.status(500).json({ message: 'Failed to send verification code' });
+    console.error('send-otp error:', err);
+    res.status(500).json({
+      message: 'Failed to send verification code',
+      errorDetails: process.env.NODE_ENV !== 'production' ? err.message : undefined,
+    });
   }
 });
 
@@ -231,6 +301,10 @@ app.post('/api/auth/verify-email', async (req, res) => {
     });
 
     await prisma.pendingReg.delete({ where: { email } });
+
+    // Send Welcome Email
+    sendEmail(user.email, 'Welcome to Verifind!', welcomeEmail(user.username))
+      .catch(err => console.error('Welcome email failed to send:', err.message));
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '30d' });
     res.json({ success: true, token, user: safeUser(user) });
@@ -397,7 +471,7 @@ app.get('/api/properties', async (req, res) => {
     const agentIds = [...new Set(properties.map(p => p.agentId))];
     const agents = await prisma.user.findMany({ where: { id: { in: agentIds } }, select: { id: true, isKycVerified: true } });
     const agentKycMap = Object.fromEntries(agents.map(a => [a.id, a.isKycVerified]));
-    const enriched = properties.map(p => ({ ...p, agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
+    const enriched = properties.map(p => ({ ...formatProperty(p), agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
 
     res.json({ success: true, properties: enriched, total, page: parseInt(page), pages: Math.ceil(total / take) });
   } catch (err) {
@@ -412,7 +486,7 @@ app.get('/api/properties/:id', async (req, res) => {
     const property = await prisma.property.findUnique({ where: { id: req.params.id } });
     if (!property) return res.status(404).json({ message: 'Property not found' });
     const agent = await prisma.user.findUnique({ where: { id: property.agentId }, select: { isKycVerified: true } });
-    res.json({ success: true, property: { ...property, agentIsKycVerified: agent?.isKycVerified ?? false } });
+    res.json({ success: true, property: { ...formatProperty(property), agentIsKycVerified: agent?.isKycVerified ?? false } });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch property' });
   }
@@ -422,9 +496,9 @@ app.get('/api/properties/:id', async (req, res) => {
 app.post('/api/properties', auth, requireRole('agent'), async (req, res) => {
   try {
     const {
-      title, description, district, address, type,
+      title, description, overview, aboutProperty, listedBy, district, address, type,
       lat, lng, baseRent, serviceCharge, cautionFee, agencyFee, legalFee,
-      images, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode,
+      images, categorizedImages, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode,
     } = req.body;
 
     if (!title || !district || !type || !baseRent)
@@ -444,9 +518,18 @@ app.post('/api/properties', auth, requireRole('agent'), async (req, res) => {
       select: { username: true, businessName: true },
     });
 
+    const agentDisplayName = agent?.businessName || agent?.username || 'Agent';
+
     const property = await prisma.property.create({
       data: {
-        title, description, district, address, type,
+        title,
+        description,
+        overview,
+        aboutProperty,
+        listedBy: listedBy || `Listed by ${agentDisplayName}`,
+        district,
+        address,
+        type,
         lat: lat ? parseFloat(lat) : null,
         lng: lng ? parseFloat(lng) : null,
         baseRent: rent,
@@ -455,7 +538,8 @@ app.post('/api/properties', auth, requireRole('agent'), async (req, res) => {
         agencyFee: agency || null,
         legalFee: legal || null,
         totalInitialPayment,
-        images: images || [],
+        images: typeof images === 'string' ? images : JSON.stringify(images || []),
+        categorizedImages: categorizedImages ? (typeof categorizedImages === 'string' ? categorizedImages : JSON.stringify(categorizedImages)) : null,
         videoUrl,
         bedrooms: bedrooms ? parseInt(bedrooms) : null,
         bathrooms: bathrooms ? parseInt(bathrooms) : null,
@@ -464,11 +548,11 @@ app.post('/api/properties', auth, requireRole('agent'), async (req, res) => {
         parking: Boolean(parking),
         listingMode: listingMode || 'Rent',
         agentId: req.user.id,
-        agentName: agent?.businessName || agent?.username,
+        agentName: agentDisplayName,
       },
     });
 
-    res.status(201).json({ success: true, property });
+    res.status(201).json({ success: true, property: formatProperty(property) });
   } catch (err) {
     console.error('POST /api/properties:', err.message);
     res.status(500).json({ message: 'Failed to create listing' });
@@ -484,14 +568,17 @@ app.put('/api/properties/:id', auth, requireRole('agent', 'admin'), async (req, 
       return res.status(403).json({ message: 'Not your listing' });
 
     const {
-      title, description, district, address, type,
+      title, description, overview, aboutProperty, listedBy, district, address, type,
       lat, lng, baseRent, serviceCharge, cautionFee, agencyFee, legalFee,
-      images, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode, status,
+      images, categorizedImages, videoUrl, bedrooms, bathrooms, sqm, furnished, parking, listingMode, status,
     } = req.body;
 
     const data = {};
     if (title !== undefined) data.title = title;
     if (description !== undefined) data.description = description;
+    if (overview !== undefined) data.overview = overview;
+    if (aboutProperty !== undefined) data.aboutProperty = aboutProperty;
+    if (listedBy !== undefined) data.listedBy = listedBy;
     if (district !== undefined) data.district = district;
     if (address !== undefined) data.address = address;
     if (type !== undefined) data.type = type;
@@ -502,7 +589,8 @@ app.put('/api/properties/:id', auth, requireRole('agent', 'admin'), async (req, 
     if (cautionFee !== undefined) data.cautionFee = parseFloat(cautionFee);
     if (agencyFee !== undefined) data.agencyFee = parseFloat(agencyFee);
     if (legalFee !== undefined) data.legalFee = parseFloat(legalFee);
-    if (images !== undefined) data.images = images;
+    if (images !== undefined) data.images = typeof images === 'string' ? images : JSON.stringify(images);
+    if (categorizedImages !== undefined) data.categorizedImages = typeof categorizedImages === 'string' ? categorizedImages : JSON.stringify(categorizedImages);
     if (videoUrl !== undefined) data.videoUrl = videoUrl;
     if (bedrooms !== undefined) data.bedrooms = parseInt(bedrooms);
     if (bathrooms !== undefined) data.bathrooms = parseInt(bathrooms);
@@ -522,7 +610,7 @@ app.put('/api/properties/:id', auth, requireRole('agent', 'admin'), async (req, 
     }
 
     const updated = await prisma.property.update({ where: { id: req.params.id }, data });
-    res.json({ success: true, property: updated });
+    res.json({ success: true, property: formatProperty(updated) });
   } catch (err) {
     console.error('PUT /api/properties:', err.message);
     res.status(500).json({ message: 'Failed to update listing' });
@@ -614,6 +702,54 @@ app.put('/api/bookings/:id', auth, requireRole('agent'), async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TENANT REQUEST ROUTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+// POST /api/requests — tenant submits property request
+app.post('/api/requests', auth, requireRole('tenant'), async (req, res) => {
+  try {
+    const { preferredLocation, budget, propertyType, notes } = req.body;
+    if (!preferredLocation || !budget) {
+      return res.status(400).json({ message: 'preferredLocation and budget are required' });
+    }
+
+    const tenant = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { username: true, email: true },
+    });
+
+    const tenantRequest = await prisma.tenantRequest.create({
+      data: {
+        tenantId: req.user.id,
+        tenantName: tenant?.username,
+        tenantEmail: tenant?.email,
+        preferredLocation,
+        budget: parseFloat(budget) || 0,
+        propertyType: propertyType || 'Self_contain',
+        notes: notes || null,
+      },
+    });
+
+    res.status(201).json({ success: true, request: tenantRequest });
+  } catch (err) {
+    console.error('POST /api/requests:', err.message);
+    res.status(500).json({ message: 'Failed to submit property request' });
+  }
+});
+
+// GET /api/requests — fetch requests
+app.get('/api/requests', auth, async (req, res) => {
+  try {
+    const where = req.user.role === 'tenant' ? { tenantId: req.user.id } : { status: 'active' };
+    const requests = await prisma.tenantRequest.findMany({ where, orderBy: { createdAt: 'desc' } });
+    res.json({ success: true, requests });
+  } catch (err) {
+    console.error('GET /api/requests:', err.message);
+    res.status(500).json({ message: 'Failed to fetch property requests' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // FAVORITES ROUTES
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -658,7 +794,7 @@ app.get('/api/favorites', auth, requireRole('tenant'), async (req, res) => {
     const agentIds = [...new Set(properties.map(p => p.agentId))];
     const agents = await prisma.user.findMany({ where: { id: { in: agentIds } }, select: { id: true, isKycVerified: true } });
     const agentKycMap = Object.fromEntries(agents.map(a => [a.id, a.isKycVerified]));
-    const enriched = properties.map(p => ({ ...p, agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
+    const enriched = properties.map(p => ({ ...formatProperty(p), agentIsKycVerified: agentKycMap[p.agentId] ?? false }));
 
     res.json({ success: true, favorites: enriched });
   } catch (err) {
