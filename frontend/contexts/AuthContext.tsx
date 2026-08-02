@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  setSession: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({} as User),
   logout: () => {},
   refreshUser: async () => {},
+  setSession: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -32,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .catch(() => {
           localStorage.removeItem('verifind_token');
           setToken(null);
+          setUser(null);
         })
         .finally(() => setLoading(false));
     } else {
@@ -39,11 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token]);
 
+  function setSession(newToken: string, newUser: User) {
+    localStorage.setItem('verifind_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
+  }
+
   async function login(email: string, password: string): Promise<User> {
     const res = await api.post<{ token: string; user: User }>('/api/auth/login', { email, password });
-    localStorage.setItem('verifind_token', res.token);
-    setToken(res.token);
-    setUser(res.user);
+    setSession(res.token, res.user);
     return res.user;
   }
 
@@ -55,12 +62,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function refreshUser() {
     if (!token) return;
-    const res = await api.get<{ user: User }>('/api/auth/me');
-    setUser(res.user);
+    try {
+      const res = await api.get<{ user: User }>('/api/auth/me');
+      setUser(res.user);
+    } catch {
+      // ignore
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser, setSession }}>
       {children}
     </AuthContext.Provider>
   );

@@ -37,6 +37,16 @@ export default function Dashboard() {
   const [addressInput, setAddressInput] = useState('');
   const [addressSaving, setAddressSaving] = useState(false);
 
+  // Feature 8: Tenant Property Request state
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [reqLoc, setReqLoc] = useState('');
+  const [reqBudget, setReqBudget] = useState('');
+  const [reqType, setReqType] = useState<PropertyType>('Self_contain');
+  const [reqNotes, setReqNotes] = useState('');
+  const [reqLoading, setReqLoading] = useState(false);
+  const [reqSuccess, setReqSuccess] = useState('');
+  const [reqError, setReqError] = useState('');
+
   const loadProperties = useCallback(async () => {
     setLoading(true);
     try {
@@ -87,7 +97,6 @@ export default function Dashboard() {
         await api.post(`/api/favorites/${propertyId}`, {});
       }
     } catch (err) {
-      // revert on error
       setFavIds(prev => {
         const next = new Set(prev);
         isFav ? next.add(propertyId) : next.delete(propertyId);
@@ -104,6 +113,32 @@ export default function Dashboard() {
       await refreshUser();
     } catch (err) { console.error(err); }
     finally { setAddressSaving(false); }
+  }
+
+  async function handlePropertyRequestSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setReqError('');
+    setReqSuccess('');
+    if (!reqLoc || !reqBudget) {
+      setReqError('Preferred location and budget are required.');
+      return;
+    }
+    setReqLoading(true);
+    try {
+      await api.post('/api/requests', {
+        preferredLocation: reqLoc,
+        budget: reqBudget.replace(/,/g, ''),
+        propertyType: reqType,
+        notes: reqNotes,
+      });
+      setReqSuccess('Property request submitted successfully! Verified agents will be notified.');
+      setReqLoc(''); setReqBudget(''); setReqNotes('');
+      setTimeout(() => { setShowRequestModal(false); setReqSuccess(''); }, 2500);
+    } catch (err: any) {
+      setReqError(err.message || 'Failed to submit request.');
+    } finally {
+      setReqLoading(false);
+    }
   }
 
   function setFilter(key: keyof PropertyFilters, value: string) {
@@ -175,6 +210,10 @@ export default function Dashboard() {
               </button>
               <button onClick={() => { setShowSaved(false); setShowBookings(b => !b); }} style={{ padding: '11px 16px', background: showBookings ? 'var(--color-primary)' : 'var(--glass-bg)', border: '1.5px solid var(--border-color)', borderRadius: 14, cursor: 'pointer', fontWeight: 600, fontSize: 14, color: showBookings ? '#fff' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                 📅 My Bookings
+              </button>
+              {/* Feature 8: Tenant Property Request Button */}
+              <button onClick={() => setShowRequestModal(true)} style={{ padding: '11px 16px', background: 'var(--color-accent)', color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer', fontWeight: 700, fontSize: 14, whiteSpace: 'nowrap' }}>
+                📌 Request Property
               </button>
             </>
           )}
@@ -273,6 +312,58 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Feature 8: Tenant Property Request Modal */}
+      {showRequestModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setShowRequestModal(false); }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: 500, padding: '30px 26px', borderRadius: 20 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 8px', color: 'var(--text-primary)' }}>📌 Submit Property Request</h2>
+            <p style={{ margin: '0 0 18px', fontSize: 13, color: 'var(--text-secondary)' }}>
+              Can't find what you're looking for? Let verified Abuja agents know your criteria.
+            </p>
+
+            {reqError && <div style={{ background: 'rgba(232,76,61,.1)', border: '1px solid rgba(232,76,61,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 14, color: '#E84C3D', fontSize: 13 }}>{reqError}</div>}
+            {reqSuccess && <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 12, padding: '10px 14px', marginBottom: 14, color: '#166534', fontSize: 13, fontWeight: 600 }}>{reqSuccess}</div>}
+
+            <form onSubmit={handlePropertyRequestSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Preferred Location / District *</label>
+                <select value={reqLoc} onChange={e => setReqLoc(e.target.value)} required>
+                  <option value="">Select location</option>
+                  {ABUJA_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Maximum Budget (₦/yr) *</label>
+                <input value={reqBudget} onChange={e => setReqBudget(e.target.value.replace(/\D/g, ''))} placeholder="e.g. 1,500,000" required />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Property Type *</label>
+                <select value={reqType} onChange={e => setReqType(e.target.value as PropertyType)} required>
+                  {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map(t => (
+                    <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 5 }}>Additional Notes / Requirements</label>
+                <textarea value={reqNotes} onChange={e => setReqNotes(e.target.value)} rows={3} placeholder="e.g. Needs balcony, upper floor, reliable water supply..." />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                <button type="button" onClick={() => setShowRequestModal(false)} style={{ flex: 1, padding: '12px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 12, cursor: 'pointer', fontWeight: 700, color: 'var(--text-primary)' }}>Cancel</button>
+                <button type="submit" disabled={reqLoading} style={{ flex: 1, padding: '12px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 700, opacity: reqLoading ? 0.7 : 1 }}>
+                  {reqLoading ? 'Submitting…' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Property detail modal */}
       {selected && (

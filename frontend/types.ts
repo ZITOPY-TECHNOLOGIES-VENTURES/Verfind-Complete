@@ -37,10 +37,41 @@ export interface User {
   createdAt?: string;
 }
 
+export type ImageCategory =
+  | 'Front View'
+  | 'Living Room'
+  | 'Kitchen'
+  | 'Bedroom'
+  | 'Bathroom'
+  | 'Left View'
+  | 'Right View'
+  | 'Compound'
+  | 'Other';
+
+export const IMAGE_CATEGORIES: ImageCategory[] = [
+  'Front View',
+  'Living Room',
+  'Kitchen',
+  'Bedroom',
+  'Bathroom',
+  'Left View',
+  'Right View',
+  'Compound',
+  'Other',
+];
+
+export interface CategorizedImage {
+  url: string;
+  category: ImageCategory;
+}
+
 export interface Property {
   id: string;
   title: string;
   description?: string;
+  overview?: string;
+  aboutProperty?: string;
+  listedBy?: string;
   district: string;
   address?: string;
   type: PropertyType;
@@ -53,6 +84,7 @@ export interface Property {
   legalFee?: number;
   totalInitialPayment?: number;
   images: string[];
+  categorizedImages?: CategorizedImage[];
   videoUrl: string;
   bedrooms?: number;
   bathrooms?: number;
@@ -82,6 +114,19 @@ export interface Booking {
   agentNote?: string;
   propertyTitle?: string;
   tenantName?: string;
+  createdAt: string;
+}
+
+export interface TenantRequest {
+  id: string;
+  tenantId: string;
+  tenantName?: string;
+  tenantEmail?: string;
+  preferredLocation: string;
+  budget: number;
+  propertyType: PropertyType;
+  notes?: string;
+  status: string;
   createdAt: string;
 }
 
@@ -120,3 +165,4 @@ export const DEFAULT_FILTERS: PropertyFilters = {
   maxRent: '',
   status: '',
 };
+

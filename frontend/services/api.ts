@@ -1,6 +1,6 @@
 const BACKEND_URL: string =
   (import.meta as any).env?.VITE_API_URL ??
-  (window.location.hostname === 'localhost' ? 'http://localhost:5000' : '');
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000' : '');
 
 async function request<T = any>(
   path: string,

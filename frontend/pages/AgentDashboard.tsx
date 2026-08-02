@@ -6,22 +6,51 @@ import AgentProfile from '../components/AgentProfile';
 import PropertyDetail from '../components/PropertyDetail';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
-import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type Booking, type PropertyType } from '../types';
+import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, IMAGE_CATEGORIES, type Property, type Booking, type PropertyType, type ImageCategory, type CategorizedImage } from '../types';
+import { validateImageFile } from '../utils/imageValidation';
 
 type Tab = 'listings' | 'bookings' | 'bank' | 'profile';
 
-const EMPTY_FORM = {
-  title: '', description: '', district: '', address: '',
+interface FormState {
+  title: string;
+  description: string;
+  overview: string;
+  aboutProperty: string;
+  listedBy: string;
+  district: string;
+  address: string;
+  lat: string;
+  lng: string;
+  type: PropertyType;
+  baseRent: string;
+  serviceCharge: string;
+  cautionFee: string;
+  agencyFee: string;
+  legalFee: string;
+  videoUrl: string;
+  images: string;
+  bedrooms: string;
+  bathrooms: string;
+  sqm: string;
+  furnished: boolean;
+  parking: boolean;
+  listingMode: 'Rent' | 'Shortlet' | 'Sale';
+  agentNin: string;
+}
+
+const EMPTY_FORM: FormState = {
+  title: '', description: '', overview: '', aboutProperty: '', listedBy: '', district: '', address: '',
   lat: '', lng: '',
-  type: 'Self_contain' as PropertyType,
+  type: 'Self_contain',
   baseRent: '', serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '',
   videoUrl: '', images: '',
   bedrooms: '', bathrooms: '', sqm: '',
   furnished: false, parking: false, listingMode: 'Rent',
+  agentNin: '',
 };
 
 export default function AgentDashboard() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [tab, setTab] = useState<Tab>('listings');
   const [properties, setProperties] = useState<Property[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -33,7 +62,12 @@ export default function AgentDashboard() {
   const [rescheduleFor, setRescheduleFor] = useState<Booking | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [toast, setToast] = useState('');
-  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [form, setForm] = useState<FormState>({ ...EMPTY_FORM });
+  const [categorizedImageList, setCategorizedImageList] = useState<CategorizedImage[]>([]);
+  const [newImgUrl, setNewImgUrl] = useState('');
+  const [newImgCat, setNewImgCat] = useState<ImageCategory>('Living Room');
+  const [imgValError, setImgValError] = useState('');
+
   const [formError, setFormError] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [percents, setPercents] = useState({ serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '' });
@@ -81,10 +115,12 @@ export default function AgentDashboard() {
   useEffect(() => { loadData(); }, [loadData]);
 
   function openCreate() {
-    setForm({ ...EMPTY_FORM });
+    setForm({ ...EMPTY_FORM, agentNin: user?.nin || '' });
+    setCategorizedImageList([]);
     setPercents({ serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '' });
     setEditProp(null); setShowForm(true); setFormError('');
   }
+
   function openEdit(p: Property) {
     setPercents({
       serviceCharge: backCalcPct(p.baseRent, p.serviceCharge),
@@ -93,28 +129,96 @@ export default function AgentDashboard() {
       legalFee: backCalcPct(p.baseRent, p.legalFee || 0),
     });
     setForm({
-      title: p.title, description: p.description || '', district: p.district, address: p.address || '',
-      lat: String(p.lat || ''), lng: String(p.lng || ''),
-      type: p.type, baseRent: String(p.baseRent), serviceCharge: String(p.serviceCharge),
-      cautionFee: String(p.cautionFee), agencyFee: String(p.agencyFee || ''),
-      legalFee: String(p.legalFee || ''), videoUrl: p.videoUrl,
-      images: p.images.join(','), bedrooms: String(p.bedrooms || ''), bathrooms: String(p.bathrooms || ''),
-      sqm: String(p.sqm || ''), furnished: p.furnished, parking: p.parking, listingMode: p.listingMode,
+      title: p.title,
+      description: p.description || '',
+      overview: p.overview || '',
+      aboutProperty: p.aboutProperty || '',
+      listedBy: p.listedBy || '',
+      district: p.district,
+      address: p.address || '',
+      lat: String(p.lat || ''),
+      lng: String(p.lng || ''),
+      type: p.type,
+      baseRent: String(p.baseRent),
+      serviceCharge: String(p.serviceCharge),
+      cautionFee: String(p.cautionFee),
+      agencyFee: String(p.agencyFee || ''),
+      legalFee: String(p.legalFee || ''),
+      videoUrl: p.videoUrl,
+      images: p.images.join(','),
+      bedrooms: String(p.bedrooms || ''),
+      bathrooms: String(p.bathrooms || ''),
+      sqm: String(p.sqm || ''),
+      furnished: p.furnished,
+      parking: p.parking,
+      listingMode: p.listingMode,
+      agentNin: user?.nin || '',
     });
+    setCategorizedImageList(p.categorizedImages || p.images.map(url => ({ url, category: 'Other' as ImageCategory })));
     setEditProp(p); setShowForm(true); setFormError('');
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImgValError('');
+    const validation = await validateImageFile(file, { minWidth: 600, minHeight: 400, maxSizeBytes: 5 * 1024 * 1024 });
+    if (!validation.valid) {
+      setImgValError(validation.error || 'Image validation failed');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        const item: CategorizedImage = { url: reader.result, category: newImgCat };
+        setCategorizedImageList(prev => [...prev, item]);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function addImageUrl() {
+    if (!newImgUrl.trim()) return;
+    setCategorizedImageList(prev => [...prev, { url: newImgUrl.trim(), category: newImgCat }]);
+    setNewImgUrl('');
+  }
+
+  function removeCategorizedImage(idx: number) {
+    setCategorizedImageList(prev => prev.filter((_, i) => i !== idx));
   }
 
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFormError('');
     if (!form.videoUrl) { setFormError('A video walkthrough is required'); return; }
+
+    // Feature 10: Check NIN requirement
+    if (!user?.nin && !form.agentNin) {
+      setFormError('NIN is required to publish or create a listing. Please enter your 11-digit NIN.');
+      return;
+    }
+
     setFormLoading(true);
     try {
+      // If NIN provided and not yet saved to user profile, update profile
+      if (form.agentNin && form.agentNin !== user?.nin) {
+        await api.put<{ user: any }>('/api/auth/me', { nin: form.agentNin });
+        await refreshUser();
+      }
+
+      const allImages = Array.from(new Set([
+        ...categorizedImageList.map(ci => ci.url),
+        ...(form.images ? form.images.split(',').map(s => s.trim()).filter(Boolean) : []),
+      ]));
+
       const body = {
         ...form,
         baseRent: form.baseRent.replace(/,/g, ''),
-        images: form.images ? form.images.split(',').map(s => s.trim()).filter(Boolean) : [],
+        images: allImages,
+        categorizedImages: categorizedImageList,
       };
+
       if (editProp) {
         await api.put(`/api/properties/${editProp.id}`, body);
       } else {
@@ -264,7 +368,6 @@ export default function AgentDashboard() {
         )}
 
         {tab === 'bank' && <AgentBankSetup />}
-
         {tab === 'profile' && <AgentProfile />}
       </div>
 
@@ -290,7 +393,7 @@ export default function AgentDashboard() {
         </div>
       )}
 
-      {/* Reschedule modal — real date picker, no typed format */}
+      {/* Reschedule modal */}
       {rescheduleFor && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 250, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={e => { if (e.target === e.currentTarget) setRescheduleFor(null); }}>
@@ -307,7 +410,7 @@ export default function AgentDashboard() {
         </div>
       )}
 
-      {/* Toast (replaces alert) */}
+      {/* Toast */}
       {toast && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 300, background: '#E84C3D', color: '#fff', padding: '12px 20px', borderRadius: 12, fontWeight: 600, fontSize: 14, boxShadow: '0 8px 28px rgba(0,0,0,0.25)', maxWidth: '90vw' }}>
           {toast}
@@ -318,29 +421,62 @@ export default function AgentDashboard() {
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg-overlay)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
           onClick={e => { if (e.target === e.currentTarget) setShowForm(false); }}>
-          <div className="glass-card" style={{ width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', padding: '32px 28px' }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: 640, maxHeight: '90vh', overflowY: 'auto', padding: '32px 28px' }}>
             <h2 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 20px', color: 'var(--text-primary)' }}>
               {editProp ? 'Edit Listing' : 'New Listing'}
             </h2>
             {formError && <div style={{ background: 'rgba(232,76,61,.1)', border: '1px solid rgba(232,76,61,.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 16, color: '#E84C3D', fontSize: 14 }}>{formError}</div>}
+            
+            {/* Feature 10: NIN Prompt inside form if missing */}
+            {!user?.nin && (
+              <div style={{ background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--color-primary)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+                <h4 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: 'var(--color-primary)' }}>🔒 Agent Identity Verification Required</h4>
+                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-secondary)' }}>You must provide your 11-digit NIN before publishing listings on Verifind.</p>
+                <input
+                  value={form.agentNin}
+                  onChange={e => setForm(f => ({ ...f, agentNin: e.target.value.replace(/\D/g, '') }))}
+                  placeholder="Enter 11-digit NIN"
+                  maxLength={11}
+                  required
+                />
+              </div>
+            )}
+
             <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <FormRow label="Title *"><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} required /></FormRow>
-              <FormRow label="District *">
-                <select value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} required>
-                  <option value="">Select district</option>
-                  {ABUJA_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </FormRow>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <FormRow label="District *">
+                  <select value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} required>
+                    <option value="">Select district</option>
+                    {ABUJA_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </FormRow>
+                <FormRow label="Listing Source (Attribution)">
+                  <input value={form.listedBy} onChange={e => setForm(f => ({ ...f, listedBy: e.target.value }))} placeholder={`e.g. Listed by ${user?.businessName || user?.username || 'Agent'}`} />
+                </FormRow>
+              </div>
+
               <FormRow label="Address"><input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Street / estate name" /></FormRow>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <FormRow label="Latitude (optional)"><input type="number" step="any" value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} placeholder="e.g. 9.0765" /></FormRow>
                 <FormRow label="Longitude (optional)"><input type="number" step="any" value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} placeholder="e.g. 7.3986" /></FormRow>
               </div>
+
               <FormRow label="Property Type *">
                 <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as PropertyType }))} required>
                   {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map(t => <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>)}
                 </select>
               </FormRow>
+
+              {/* Feature 5: Overview & About Property */}
+              <FormRow label="Property Overview (Key Highlights)">
+                <input value={form.overview} onChange={e => setForm(f => ({ ...f, overview: e.target.value }))} placeholder="e.g. Modern 2-bedroom apartment with 24/7 security & power in Maitama" />
+              </FormRow>
+              <FormRow label="About Property (Detailed Description)">
+                <textarea value={form.aboutProperty || form.description} onChange={e => setForm(f => ({ ...f, aboutProperty: e.target.value, description: e.target.value }))} rows={3} placeholder="Provide full property details, amenities, nearby landmarks..." />
+              </FormRow>
+
               <FormRow label="Base Rent (₦/yr) *">
                 <input value={fmtMoney(form.baseRent)} onChange={e => onBaseRentChange(e.target.value)} placeholder="e.g. 500,000" required />
               </FormRow>
@@ -360,16 +496,51 @@ export default function AgentDashboard() {
                   );
                 })}
               </div>
+
               <FormRow label="Video Walkthrough URL *">
                 <input value={form.videoUrl} onChange={e => setForm(f => ({ ...f, videoUrl: e.target.value }))} placeholder="YouTube, Vimeo or direct URL" required />
               </FormRow>
-              <FormRow label="Image URLs (comma-separated)"><input value={form.images} onChange={e => setForm(f => ({ ...f, images: e.target.value }))} placeholder="https://..., https://..." /></FormRow>
+
+              {/* Feature 4 & 7: Categorized Image Uploads & Validation */}
+              <div style={{ background: 'var(--glass-bg-subtle)', borderRadius: 14, padding: 16 }}>
+                <FormRow label="Categorized Property Views (Min 600x400px, Max 5MB)">
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                    <select value={newImgCat} onChange={e => setNewImgCat(e.target.value as ImageCategory)} style={{ width: 140 }}>
+                      {IMAGE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                    <label style={{ flex: 1, padding: '9px 14px', background: 'var(--color-primary)', color: '#fff', borderRadius: 10, cursor: 'pointer', textAlign: 'center', fontWeight: 600, fontSize: 13 }}>
+                      📁 Select Image File
+                      <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileUpload} style={{ display: 'none' }} />
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <input value={newImgUrl} onChange={e => setNewImgUrl(e.target.value)} placeholder="Or paste image URL" style={{ flex: 1 }} />
+                    <button type="button" onClick={addImageUrl} style={{ padding: '8px 14px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>Add</button>
+                  </div>
+
+                  {imgValError && <div style={{ color: '#E84C3D', fontSize: 12, marginBottom: 8, fontWeight: 600 }}>⚠️ {imgValError}</div>}
+
+                  {categorizedImageList.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                      {categorizedImageList.map((ci, idx) => (
+                        <div key={idx} style={{ position: 'relative', width: 90, height: 70, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                          <img src={ci.url} alt={ci.category} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <span style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 9, textAlign: 'center', padding: '2px 0' }}>{ci.category}</span>
+                          <button type="button" onClick={() => removeCategorizedImage(idx)} style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(232,76,61,0.9)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </FormRow>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <FormRow label="Bedrooms"><input type="number" value={form.bedrooms} onChange={e => setForm(f => ({ ...f, bedrooms: e.target.value }))} /></FormRow>
                 <FormRow label="Bathrooms"><input type="number" value={form.bathrooms} onChange={e => setForm(f => ({ ...f, bathrooms: e.target.value }))} /></FormRow>
                 <FormRow label="Size (sqm)"><input type="number" value={form.sqm} onChange={e => setForm(f => ({ ...f, sqm: e.target.value }))} /></FormRow>
               </div>
-              <FormRow label="Description"><textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} placeholder="Describe the property…" /></FormRow>
+
               <div style={{ display: 'flex', gap: 20 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>
                   <input type="checkbox" checked={form.furnished} onChange={e => setForm(f => ({ ...f, furnished: e.target.checked }))} style={{ width: 'auto', accentColor: 'var(--color-primary)' }} />
