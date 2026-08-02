@@ -3,8 +3,52 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Role {
+  tenant
+  agent
+  admin
+}
+
+enum PropertyType {
+  Self_contain
+  One_bedroom
+  Two_bedroom
+  Three_bedroom
+  Detached_duplex
+}
+
+enum PropertyStatus {
+  available
+  under_offer
+  rented
+}
+
+enum VerificationStage {
+  listing_created
+  docs_uploaded
+  agent_vetted
+  inspection_scheduled
+  verified
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  escrow_hold
+  escrow_release
+}
+
+enum PaymentStatus {
+  pending
+  confirmed
+  releasing
+  released
+  failed
+  refunded
 }
 
 model User {
@@ -12,7 +56,7 @@ model User {
   username          String
   email             String   @unique
   password          String
-  role              String   @default("tenant")
+  role              Role     @default(tenant)
   isEmailVerified   Boolean  @default(false)
   isKycVerified     Boolean  @default(false)
   phone             String?
@@ -34,7 +78,7 @@ model PendingReg {
   username  String
   email     String   @unique
   password  String
-  role      String   @default("tenant")
+  role      Role     @default(tenant)
   phone     String?
   nin       String?
   otp       String
@@ -45,7 +89,7 @@ model PendingReg {
 }
 
 model Property {
-  id                  String   @id @default(uuid())
+  id                  String            @id @default(uuid())
   title               String
   description         String?
   overview            String?
@@ -53,46 +97,46 @@ model Property {
   listedBy            String?
   district            String
   address             String?
-  type                String   @default("Self_contain")
+  type                PropertyType      @default(Self_contain)
   lat                 Float?
   lng                 Float?
   baseRent            Float
-  serviceCharge       Float    @default(0)
-  cautionFee          Float    @default(0)
+  serviceCharge       Float             @default(0)
+  cautionFee          Float             @default(0)
   agencyFee           Float?
   legalFee            Float?
   totalInitialPayment Float?
-  images              String   @default("[]")
+  images              String[]
   categorizedImages   String?
   videoUrl            String
   bedrooms            Int?
   bathrooms           Int?
   sqm                 Float?
-  furnished           Boolean  @default(false)
-  parking             Boolean  @default(false)
-  listingMode         String   @default("Rent")
-  isFeatured          Boolean  @default(false)
+  furnished           Boolean           @default(false)
+  parking             Boolean           @default(false)
+  listingMode         String            @default("Rent")
+  isFeatured          Boolean           @default(false)
   agentId             String
   agentName           String?
-  isVerified          Boolean  @default(false)
-  verificationStage   String   @default("listing_created")
-  status              String   @default("available")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  isVerified          Boolean           @default(false)
+  verificationStage   VerificationStage @default(listing_created)
+  status              PropertyStatus    @default(available)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 }
 
 model TenantRequest {
-  id                String   @id @default(uuid())
+  id                String       @id @default(uuid())
   tenantId          String
   tenantName        String?
   tenantEmail       String?
   preferredLocation String
   budget            Float
-  propertyType      String   @default("Self_contain")
+  propertyType      PropertyType @default(Self_contain)
   notes             String?
-  status            String   @default("active")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            String       @default("active")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 }
 
 model Booking {
@@ -110,40 +154,40 @@ model Booking {
 }
 
 model Transaction {
-  id          String   @id @default(uuid())
+  id          String          @id @default(uuid())
   userId      String
   propertyId  String?
-  type        String
+  type        TransactionType
   amount      Float
-  status      String   @default("completed")
+  status      String          @default("completed")
   description String?
   reference   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model Payment {
-  id                    String    @id @default(uuid())
-  reference             String    @unique
+  id                    String        @id @default(uuid())
+  reference             String        @unique
   propertyId            String
   tenantId              String
   agentId               String
   amount                Float
   amountKobo            Float
   description           String?
-  status                String    @default("pending")
-  tenantConfirmedMoveIn Boolean   @default(false)
+  status                PaymentStatus @default(pending)
+  tenantConfirmedMoveIn Boolean       @default(false)
   moveInConfirmedAt     DateTime?
   inspectionDate        DateTime?
   releaseDate           DateTime?
-  paystackData          String?
+  paystackData          Json?
   transferReference     String?
   recipientCode         String?
   propertyTitle         String?
   agentName             String?
   tenantEmail           String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 }
 
 model AgentBank {
