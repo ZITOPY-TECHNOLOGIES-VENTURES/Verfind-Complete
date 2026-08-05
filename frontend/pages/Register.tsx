@@ -32,7 +32,6 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [phone, setPhone] = useState('');
-  const [nin, setNin] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
   const [cacNumber, setCacNumber] = useState('');
@@ -69,7 +68,6 @@ export default function Register() {
         username: role === 'agent' && businessName ? businessName : username,
         email, password, role,
         phone: phone || undefined,
-        nin: nin || undefined,
       });
       setStep('otp');
       startResendTimer();
@@ -105,7 +103,7 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/api/auth/send-otp', { username, email, password, role, phone: phone || undefined, nin: nin || undefined });
+      await api.post('/api/auth/send-otp', { username, email, password, role, phone: phone || undefined });
       startResendTimer();
     } catch (err: any) {
       setError(err.message || 'Failed to resend');
@@ -199,11 +197,7 @@ export default function Register() {
             {role === 'agent' && (
               <>
                 <div>
-                  <label style={darkLabel}>NIN <span style={{ color: 'rgba(255,255,255,0.3)' }}>(for KYC)</span></label>
-                  <input value={nin} onChange={e => setNin(e.target.value)} placeholder="11-digit NIN" maxLength={11} style={darkInput} />
-                </div>
-                <div>
-                  <label style={darkLabel}>Driver's Licence Number <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional — if no NIN)</span></label>
+                  <label style={darkLabel}>Driver's Licence Number <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional)</span></label>
                   <input value={driverLicenseNumber} onChange={e => setDriverLicenseNumber(e.target.value)} placeholder="e.g. ABC123456789" style={darkInput} />
                 </div>
                 <div>

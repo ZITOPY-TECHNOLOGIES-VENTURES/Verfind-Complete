@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import PropertyCard from '../components/PropertyCard';
@@ -12,6 +12,7 @@ import UserMenu from '../components/UserMenu';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type PropertyType, type PropertyFilters, DEFAULT_FILTERS } from '../types';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
 
@@ -150,10 +151,13 @@ export default function Dashboard() {
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => { setShowSaved(false); setShowBookings(false); }} aria-label="Go to dashboard home" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <button onClick={() => navigate('/')} aria-label="Go to homepage" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
             <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => navigate('/properties')} style={{ padding: '8px 16px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', color: 'var(--text-primary)' }}>
+              🌐 View All Properties
+            </button>
             <ThemeToggle size={38} />
             <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setShowProfile(true) }]} />
           </div>

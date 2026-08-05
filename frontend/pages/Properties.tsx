@@ -1,0 +1,264 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import api from '../services/api';
+import SiteHeader from '../components/SiteHeader';
+import SiteFooter from '../components/SiteFooter';
+import PropertyCard from '../components/PropertyCard';
+import PropertyDetail from '../components/PropertyDetail';
+import PaymentModal from '../components/PaymentModal';
+import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, type Property, type PropertyType, type PropertyFilters, DEFAULT_FILTERS } from '../types';
+
+export default function Properties() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<PropertyFilters>({
+    ...DEFAULT_FILTERS,
+    search: searchParams.get('search') || '',
+    district: searchParams.get('district') || '',
+    type: (searchParams.get('type') as PropertyType) || '',
+  });
+
+  const [selected, setSelected] = useState<Property | null>(null);
+  const [payProp, setPayProp] = useState<Property | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const [favIds, setFavIds] = useState<Set<string>>(new Set());
+
+  const loadProperties = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.search) params.set('search', filters.search);
+      if (filters.district) params.set('district', filters.district);
+      if (filters.type) params.set('type', filters.type);
+      if (filters.status) params.set('status', filters.status);
+      if (filters.minRent) params.set('minRent', filters.minRent);
+      if (filters.maxRent) params.set('maxRent', filters.maxRent);
+      const res = await api.get<{ properties: Property[]; total: number }>(`/api/properties?${params}`);
+      setProperties(res.properties);
+      setTotal(res.total);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => { loadProperties(); }, [loadProperties]);
+
+  // Sync URL params when search/district from homepage changes
+  useEffect(() => {
+    const s = searchParams.get('search');
+    const d = searchParams.get('district');
+    const t = searchParams.get('type');
+    if (s !== null || d !== null || t !== null) {
+      setFilters(f => ({
+        ...f,
+        ...(s !== null && { search: s }),
+        ...(d !== null && { district: d }),
+        ...(t !== null && { type: t as PropertyType }),
+      }));
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user?.role === 'tenant') {
+      api.get<{ favorites: Property[] }>('/api/favorites')
+        .then(res => setFavIds(new Set(res.favorites.map((p: Property) => p.id))))
+        .catch(() => {});
+    }
+  }, [user]);
+
+  async function toggleFavorite(propertyId: string) {
+    if (!user) {
+      navigate('/login?redirect=/properties');
+      return;
+    }
+    const isFav = favIds.has(propertyId);
+    setFavIds(prev => {
+      const next = new Set(prev);
+      isFav ? next.delete(propertyId) : next.add(propertyId);
+      return next;
+    });
+    try {
+      if (isFav) {
+        await api.delete(`/api/favorites/${propertyId}`);
+      } else {
+        await api.post(`/api/favorites/${propertyId}`, {});
+      }
+    } catch (err) {
+      setFavIds(prev => {
+        const next = new Set(prev);
+        isFav ? next.add(propertyId) : next.delete(propertyId);
+        return next;
+      });
+    }
+  }
+
+  function setFilter(key: keyof PropertyFilters, value: string) {
+    setFilters(f => ({ ...f, [key]: value }));
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)', display: 'flex', flexDirection: 'column' }}>
+      <SiteHeader />
+
+      {/* Hero header banner */}
+      <div style={{ position: 'relative', background: 'linear-gradient(135deg, #1B3068 0%, #0E3A6E 50%, #095D50 100%)', padding: '40px 24px 36px', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,31,61,0.6) 0%, rgba(10,31,61,0.1) 100%)', pointerEvents: 'none' }} />
+        <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 'clamp(24px, 4vw, 38px)', fontWeight: 400, color: '#fff', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+            Verified Abuja Property Listings
+          </h1>
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.72)', margin: 0 }}>
+            {total > 0 ? `${total} verified propert${total === 1 ? 'y' : 'ies'} available across FCT` : 'Explore verified homes with video walkthroughs in Abuja'}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '24px 20px 60px', flex: 1 }}>
+        {/* Search + Filter controls */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+          <input
+            value={filters.search}
+            onChange={e => setFilter('search', e.target.value)}
+            placeholder="Search by title, district or address…"
+            style={{ flex: '1 1 240px', minWidth: 200 }}
+            onKeyDown={e => e.key === 'Enter' && loadProperties()}
+          />
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            style={{
+              padding: '11px 18px',
+              background: 'var(--glass-bg)',
+              border: '1.5px solid var(--border-color)',
+              borderRadius: 14,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+              color: 'var(--text-primary)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Filters {showFilters ? '▲' : '▼'}
+          </button>
+          <button
+            onClick={loadProperties}
+            style={{
+              padding: '11px 24px',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 14,
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 14,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Search
+          </button>
+        </div>
+
+        {/* Filter panel */}
+        {showFilters && (
+          <div className="glass-card" style={{ padding: '20px', marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 12, borderRadius: 18 }}>
+            <select value={filters.district} onChange={e => setFilter('district', e.target.value)} style={{ flex: '1 1 160px' }}>
+              <option value="">All Districts</option>
+              {ABUJA_DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+            <select value={filters.type} onChange={e => setFilter('type', e.target.value as PropertyType | '')} style={{ flex: '1 1 160px' }}>
+              <option value="">All Types</option>
+              {(Object.keys(PROPERTY_TYPE_LABELS) as PropertyType[]).map(t => (
+                <option key={t} value={t}>{PROPERTY_TYPE_LABELS[t]}</option>
+              ))}
+            </select>
+            <select value={filters.status} onChange={e => setFilter('status', e.target.value)} style={{ flex: '1 1 140px' }}>
+              <option value="">Any Status</option>
+              <option value="available">Available</option>
+              <option value="under_offer">Under Offer</option>
+              <option value="rented">Rented</option>
+            </select>
+            <input value={filters.minRent} onChange={e => setFilter('minRent', e.target.value)} placeholder="Min rent (₦)" type="number" style={{ flex: '1 1 130px' }} />
+            <input value={filters.maxRent} onChange={e => setFilter('maxRent', e.target.value)} placeholder="Max rent (₦)" type="number" style={{ flex: '1 1 130px' }} />
+            <button
+              onClick={() => { setFilters(DEFAULT_FILTERS); setSearchParams({}); }}
+              style={{ background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 10, padding: '9px 14px', cursor: 'pointer', fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Results summary */}
+        <div style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: 14, fontWeight: 600 }}>
+          {loading ? 'Searching properties…' : `${total} propert${total === 1 ? 'y' : 'ies'} found`}
+          {filters.district && ` in ${filters.district}`}
+        </div>
+
+        {/* Property Grid */}
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="glass-card" style={{ height: 320, borderRadius: 20, background: 'var(--glass-bg)', animation: 'shimmer-sweep 1.5s infinite', backgroundSize: '200% 100%' }} />
+            ))}
+          </div>
+        ) : properties.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-muted)', background: 'var(--glass-bg-subtle)', borderRadius: 20, border: '1px dashed var(--border-color)' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
+            <h3 style={{ fontWeight: 700, fontSize: 18, marginBottom: 8, color: 'var(--text-secondary)' }}>No properties match your criteria</h3>
+            <p style={{ margin: '0 0 16px', fontSize: 14 }}>Try clearing or adjusting your search filters</p>
+            <button onClick={() => setFilters(DEFAULT_FILTERS)} style={{ padding: '9px 20px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer', fontSize: 14 }}>
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}>
+            {properties.map(p => (
+              <PropertyCard
+                key={p.id}
+                property={p}
+                onClick={() => setSelected(p)}
+                onFavorite={toggleFavorite}
+                isFavorited={favIds.has(p.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Property detail modal */}
+      {selected && (
+        <PropertyDetail
+          property={selected}
+          onClose={() => setSelected(null)}
+          onPay={() => {
+            if (!user) {
+              navigate(`/login?redirect=/properties`);
+              return;
+            }
+            setPayProp(selected);
+            setSelected(null);
+          }}
+        />
+      )}
+
+      {/* Payment modal */}
+      {payProp && (
+        <PaymentModal
+          property={payProp}
+          onClose={() => setPayProp(null)}
+          onSuccess={() => { setPayProp(null); loadProperties(); }}
+        />
+      )}
+
+      <SiteFooter />
+    </div>
+  );
+}

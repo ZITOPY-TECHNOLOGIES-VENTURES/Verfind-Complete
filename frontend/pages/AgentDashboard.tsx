@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import AgentBankSetup from '../components/AgentBankSetup';
 import AgentProfile from '../components/AgentProfile';
 import PropertyDetail from '../components/PropertyDetail';
+import NinVerificationModal from '../components/NinVerificationModal';
 import ThemeToggle from '../components/ThemeToggle';
 import UserMenu from '../components/UserMenu';
 import { ABUJA_DISTRICTS, PROPERTY_TYPE_LABELS, IMAGE_CATEGORIES, type Property, type Booking, type PropertyType, type ImageCategory, type CategorizedImage } from '../types';
@@ -50,12 +52,14 @@ const EMPTY_FORM: FormState = {
 };
 
 export default function AgentDashboard() {
+  const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
   const [tab, setTab] = useState<Tab>('listings');
   const [properties, setProperties] = useState<Property[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showNinModal, setShowNinModal] = useState(false);
   const [editProp, setEditProp] = useState<Property | null>(null);
   const [viewProp, setViewProp] = useState<Property | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Property | null>(null);
@@ -114,11 +118,19 @@ export default function AgentDashboard() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  function openCreate() {
+  function startListingForm() {
     setForm({ ...EMPTY_FORM, agentNin: user?.nin || '' });
     setCategorizedImageList([]);
     setPercents({ serviceCharge: '', cautionFee: '', agencyFee: '', legalFee: '' });
     setEditProp(null); setShowForm(true); setFormError('');
+  }
+
+  function openCreate() {
+    if (!user?.nin) {
+      setShowNinModal(true);
+      return;
+    }
+    startListingForm();
   }
 
   function openEdit(p: Property) {
@@ -264,10 +276,13 @@ export default function AgentDashboard() {
       {/* Header */}
       <header className="glass-header" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '0 20px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 88, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => setTab('listings')} aria-label="Go to dashboard home" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+          <button onClick={() => navigate('/')} aria-label="Go to homepage" style={{ marginRight: 'auto', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
             <img src="/verifind-logo.png" alt="Verifind" style={{ height: 80, width: 'auto' }} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => navigate('/properties')} style={{ padding: '8px 16px', background: 'var(--glass-bg-subtle)', border: '1.5px solid var(--border-color)', borderRadius: 10, fontWeight: 600, fontSize: 13, cursor: 'pointer', color: 'var(--text-primary)' }}>
+              🌐 View All Properties
+            </button>
             <ThemeToggle size={38} />
             <UserMenu items={[{ label: 'My Profile', icon: '👤', onClick: () => setTab('profile') }]} />
           </div>
@@ -560,6 +575,16 @@ export default function AgentDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {showNinModal && (
+        <NinVerificationModal
+          onClose={() => setShowNinModal(false)}
+          onSuccess={() => {
+            setShowNinModal(false);
+            startListingForm();
+          }}
+        />
       )}
     </div>
   );
