@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ABUJA_DISTRICTS } from '../types';
+import { ABUJA_DISTRICTS, type Property } from '../types';
 import api from '../services/api';
 import SiteFooter from '../components/SiteFooter';
 import SiteHeader from '../components/SiteHeader';
+import PropertyCard from '../components/PropertyCard';
+import PropertyDetail from '../components/PropertyDetail';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Stats { activeListings: number; verifiedProperties: number; certifiedAgents: number; }
 
@@ -29,23 +32,35 @@ const DISTRICT_IMAGES: Record<string, string> = {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [loadingProps, setLoadingProps] = useState(true);
 
   useEffect(() => {
     api.get<{ stats: Stats }>('/api/stats')
       .then(res => setStats(res.stats))
       .catch(() => {});
+
+    api.get<{ properties: Property[] }>('/api/properties?limit=12')
+      .then(res => setProperties(res.properties))
+      .catch(() => {})
+      .finally(() => setLoadingProps(false));
   }, []);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/dashboard?search=${encodeURIComponent(search)}`);
+    navigate(`/properties?search=${encodeURIComponent(search)}`);
   }
 
   function handleDistrictClick(district: string) {
-    navigate(`/dashboard?district=${encodeURIComponent(district)}`);
+    navigate(`/properties?district=${encodeURIComponent(district)}`);
   }
+
+  const featuredProps = properties.filter(p => p.isVerified || p.videoUrl).slice(0, 4);
+  const recentProps = properties.slice(0, 6);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
@@ -99,12 +114,85 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Public Property Discovery — Featured Properties */}
+      {featuredProps.length > 0 && (
+        <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 60px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: 'var(--text-primary)' }}>
+                ⭐ Featured Properties
+              </h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)' }}>
+                Verified listings with video walkthroughs
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/properties')}
+              style={{ background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 12, padding: '8px 16px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+            >
+              View All Properties →
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            {featuredProps.map(p => (
+              <PropertyCard
+                key={p.id}
+                property={p}
+                onClick={() => setSelectedProperty(p)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Public Property Discovery — Recently Added Properties */}
+      {recentProps.length > 0 && (
+        <section style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 60px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px', color: 'var(--text-primary)' }}>
+                🔥 Recently Added
+              </h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)' }}>
+                Fresh property listings across Abuja
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/properties')}
+              style={{ background: 'none', border: '1.5px solid var(--border-color)', borderRadius: 12, padding: '8px 16px', color: 'var(--color-primary)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+            >
+              Browse All →
+            </button>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+            {recentProps.map(p => (
+              <PropertyCard
+                key={p.id}
+                property={p}
+                onClick={() => setSelectedProperty(p)}
+              />
+            ))}
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 32 }}>
+            <button
+              onClick={() => navigate('/properties')}
+              style={{ padding: '14px 36px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: 'pointer', boxShadow: '0 4px 16px rgba(27,48,104,0.25)' }}
+            >
+              🌐 Explore All Verified Properties
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Value props */}
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 56px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
           {[
-            { icon: '🏠', accent: '#2D8B1E', title: 'Rent in Abuja', body: 'Browse verified rentals with escrow protection. Pay securely — funds released only after you confirm move-in.', cta: 'Find Rentals', to: '/dashboard' },
-            { icon: '📹', accent: '#1B3068', title: 'Video Walkthroughs', body: 'Every listing on Verifind includes a real video tour. No more arriving to find a property that doesn\'t match the photos.', cta: 'Browse Properties', to: '/dashboard' },
+            { icon: '🏠', accent: '#2D8B1E', title: 'Rent in Abuja', body: 'Browse verified rentals with escrow protection. Pay securely — funds released only after you confirm move-in.', cta: 'Find Rentals', to: '/properties' },
+            { icon: '📹', accent: '#1B3068', title: 'Video Walkthroughs', body: 'Every listing on Verifind includes a real video tour. No more arriving to find a property that doesn\'t match the photos.', cta: 'Browse Properties', to: '/properties' },
             { icon: '🏢', accent: '#4338CA', title: 'List & Get Verified', body: 'Post your property, complete KYC, and earn the Verifind Verified badge. Verified listings build tenant trust instantly.', cta: 'List Your Property', to: '/register?role=agent' },
           ].map(c => (
             <div key={c.title} className="glass-card" style={{ borderRadius: 20, padding: '28px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -181,6 +269,21 @@ export default function Home() {
           List a Property
         </button>
       </section>
+
+      {/* Property detail modal if opened */}
+      {selectedProperty && (
+        <PropertyDetail
+          property={selectedProperty}
+          onClose={() => setSelectedProperty(null)}
+          onPay={() => {
+            if (!user) {
+              navigate('/login?redirect=/properties');
+            } else {
+              navigate('/dashboard');
+            }
+          }}
+        />
+      )}
 
       <SiteFooter />
     </div>

@@ -8,6 +8,7 @@ interface Props {
 }
 
 const NAV_LINKS = [
+  { label: 'Properties', to: '/properties', key: 'properties' },
   { label: 'About', to: '/about', key: 'about' },
   { label: 'How It Works', to: '/how-it-works', key: 'how-it-works' },
   { label: 'Contact', to: '/contact', key: 'contact' },
